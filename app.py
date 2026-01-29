@@ -82,7 +82,6 @@ try:
     st.divider()
     st.markdown("### 1. Gantt de Procesos - Granel")
     color_scale = alt.Scale(domain=['Baja', 'Media', 'Alta'], range=['#71c071', '#f9d978', '#ff7676'])
-
     bars_timeline = alt.Chart(df).mark_bar(size=20).encode(
         x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
         x2='Fecha_Fin_Estimada:T',
@@ -103,7 +102,7 @@ try:
     ).properties(height=300).interactive()
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (BARRAS LADO A LADO Y ANCHO COMPLETO) ---
+    # --- GRÁFICO 3: COMPARATIVA HORIZONTAL (ESTILO DASHBOARD) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -114,29 +113,22 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Truco para ancho total: Usamos X para el Proceso y una codificación secundaria para las barras
-    # Como tu versión no soporta xOffset, usamos una técnica de concatenación para el eje X
-    chart_agrupado = alt.Chart(df_melted).mark_bar(size=12).encode(
-        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
-        y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+    # Gráfico horizontal agrupado por proceso
+    chart_comparativa_h = alt.Chart(df_melted).mark_bar(height=15).encode(
+        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+        x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        column=alt.Column(f'{col_procesos}:N', 
-                         title=None, 
-                         header=alt.Header(labelOrient='bottom', labelAngle=-45, labelPadding=10),
-                         spacing=10 # Espacio entre los pares de barras
-        ),
+        row=alt.Row(f'{col_procesos}:N', title=None, header=alt.Header(labelAngle=0, labelAlign='left')),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        width=alt.Step(40), # Esto asegura que el gráfico crezca horizontalmente
-        height=300
+        height=40 # Altura de cada "par" de barras por proceso
+    ).configure_facet(
+        spacing=5 # Espacio entre cada proceso
     ).configure_view(
         stroke=None
-    ).configure_facet(
-        spacing=0
     )
 
-    # Forzamos a Streamlit a estirarlo si es posible, aunque con 'column' el 'Step' manda.
-    st.altair_chart(chart_agrupado)
+    st.altair_chart(chart_comparativa_h, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
