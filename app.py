@@ -114,7 +114,7 @@ try:
             alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
             alt.Tooltip(col_avance, format='.0f', title="Avance %")
         ]
-    ).properties(height=350).interactive()
+    ).properties(height=250).interactive()
 
     st.altair_chart(chart_bars, use_container_width=True)
 
