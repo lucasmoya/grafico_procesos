@@ -103,7 +103,7 @@ try:
     ).properties(height=300).interactive()
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (ANCHO TOTAL - COMPATIBLE V4) ---
+    # --- GRÁFICO 3: COMPARATIVA (ANCHO CORREGIDO) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -114,26 +114,20 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Para que ocupe todo el ancho sin usar xOffset (v5) ni Column (que rompe el ancho)
-    # Usamos el Proceso en el eje X y el Tipo_Avance para separar sutilmente las barras mediante color y orden
+    # SOLUCIÓN PARA ANCHO TOTAL:
+    # Agrupamos las barras en un solo eje X usando el nombre del proceso y el tipo de avance.
     chart_agrupado = alt.Chart(df_melted).mark_bar().encode(
-        # El secreto está en combinar el nombre del proceso con el tipo para que Altair los trate como items distintos en el eje X
-        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+        x=alt.X(f'{col_procesos}:N', title="Procesos", axis=alt.Axis(labelAngle=-45)),
         y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+        # Usamos el color para diferenciar y el orden para agruparlas juntas por proceso
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        # Usamos Facet pero con configuración de ancho para que se estire
-        column=alt.Column(f'{col_procesos}:N', title=None, header=alt.Header(labelOrient='bottom', labelAngle=-45)),
+        detail='Tipo_Avance:N', # Mantiene la separación lógica
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        # Calculamos un ancho dinámico aproximado basado en el número de procesos para forzar el ancho total
-        width=max(700 / len(df), 40), 
-        height=300
-    ).configure_facet(
-        spacing=5
-    ).configure_view(
-        stroke=None
+        height=350
     )
 
+    # Al NO usar 'column' o 'facet', Streamlit puede estirar el gráfico al 100%
     st.altair_chart(chart_agrupado, use_container_width=True)
 
     # --- TABLA DE DATOS ---
