@@ -109,7 +109,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA BARRAS HORIZONTALES (CONTENIDO AL ANCHO) ---
+    # --- GRÁFICO 3: COMPARATIVA (MISMO FORMATO QUE GRÁFICO 2) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,21 +120,24 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Usamos un eje Y doble (Proceso + Tipo) en un solo gráfico para respetar el ancho
+    # Esta configuración asegura que el gráfico se contenga exactamente igual al Gráfico 2
     chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
-        y=alt.Y('Tipo_Avance:N', title=None),
+        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=10)),
+        color=alt.Color('Tipo_Avance:N', 
+                        scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
+                        title="Referencia"),
+        row=alt.Row(f'{col_procesos}:N', 
+                    title=None, 
+                    header=alt.Header(labelAngle=0, labelAlign='left', labelFontSize=12)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        # Eliminamos el width fijo y usamos 'container' para que Streamlit mande
-        width='container', 
-        height=60
+        height=30, # Altura de cada par de barras
+        width="container" # ESTO obliga a que use el ancho de la página igual que los otros
+    ).configure_facet(
+        spacing=5
     ).configure_view(
         stroke=None
-    ).configure_facet(
-        spacing=10
     )
 
     st.altair_chart(chart_comparativo, use_container_width=True)
