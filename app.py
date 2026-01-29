@@ -31,6 +31,13 @@ def extraer_complejidad(valor):
     except:
         return 0.0
 
+def categorizar_complejidad(valor):
+    """Asigna la etiqueta de texto para la leyenda."""
+    if 1 <= valor < 4: return 'Baja'
+    elif 4 <= valor < 7: return 'Media'
+    elif valor >= 7: return 'Alta'
+    return 'N/A'
+
 def asignar_color_barra(valor):
     if 1 <= valor < 4: return '#71c071' # Verde
     elif 4 <= valor < 7: return '#f9d978' # Amarillo
@@ -45,11 +52,12 @@ try:
     col_avance = '% de avance'
     col_status = 'Status del proceso'
     
-    col_fecha_inicio = 'Fecha Inicio' # Columna Q
-    col_tiempo_meses = 'Tiempo en meses' # Columna T
+    col_fecha_inicio = 'Fecha Inicio'
+    col_tiempo_meses = 'Tiempo en meses'
 
     df = df.dropna(subset=[col_procesos])
     df[col_complejidad] = df[col_complejidad].apply(extraer_complejidad)
+    df['Nivel_Complejidad'] = df[col_complejidad].apply(categorizar_complejidad)
     df['Color_Barra'] = df[col_complejidad].apply(asignar_color_barra)
     df[col_avance] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
@@ -69,61 +77,45 @@ try:
         en_curso = len(df[df[col_status].str.contains("curso", case=False, na=False)])
         m3.metric("Procesos en Curso", en_curso)
 
-    # --- CRONOGRAMA CON LÍNEA DE DÍA ACTUAL ---
+    # --- CRONOGRAMA ---
     st.divider()
-    st.subheader("Cronograma Estimado de Procesos - Granel")
+    st.subheader("Cronograma Estimado de Procesos")
     
-    # 1. Las barras del cronograma
-    bars = alt.Chart(df).mark_bar(size=20).encode(
+    bars_timeline = alt.Chart(df).mark_bar(size=20).encode(
         x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
         x2='Fecha_Fin_Estimada:T',
         y=alt.Y(f'{col_procesos}:N', sort='x', title="Procesos"),
         color=alt.Color('Color_Barra:N', scale=None),
-        tooltip=[
-            alt.Tooltip(col_procesos, title="Proceso"),
-            alt.Tooltip(col_fecha_inicio, title="Inicio"),
-            alt.Tooltip('Fecha_Fin_Estimada', title="Fin Proyectado"),
-            alt.Tooltip(col_avance, title="Avance actual %")
-        ]
+        tooltip=[col_procesos, col_fecha_inicio, 'Fecha_Fin_Estimada', col_avance]
     )
 
-    # 2. La línea de "Hoy"
     hoy = pd.to_datetime(datetime.now().date())
-    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(
-        color='red', 
-        strokeDash=[5, 5], 
-        size=2
-    ).encode(
-        x='hoy:T'
-    )
+    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='red', strokeDash=[5, 5]).encode(x='hoy:T')
+    
+    st.altair_chart((bars_timeline + linea_hoy).properties(height=400).interactive(), use_container_width=True)
 
-    # 3. Etiqueta de texto para la línea de "Hoy"
-    texto_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy], 'label': ['HOY']})).mark_text(
-        align='left',
-        dx=5,
-        dy=-180, # Ajusta esto según la altura de tu gráfico
-        color='red',
-        fontWeight='bold'
-    ).encode(
-        x='hoy:T',
-        text='label'
-    )
-
-    # Combinar capas
-    chart_timeline = (bars + linea_hoy + texto_hoy).properties(height=400).interactive()
-
-    st.altair_chart(chart_timeline, use_container_width=True)
-
-    # --- GRÁFICO DE AVANCE ---
+    # --- GRÁFICO DE AVANCE CON LEYENDA ---
+    st.divider()
     st.subheader("Gráfico de Avance por Proceso - Granel")
+
+    # Definimos la escala de colores para la leyenda
+    color_scale = alt.Scale(
+        domain=['Baja', 'Media', 'Alta'],
+        range=['#71c071', '#f9d978', '#ff7676']
+    )
 
     chart_bars = alt.Chart(df).mark_bar().encode(
         x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
         y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
-        color=alt.Color('Color_Barra:N', scale=None),
+        # Aquí mapeamos el color a la columna de categoría y aplicamos la leyenda
+        color=alt.Color('Nivel_Complejidad:N', 
+                        scale=color_scale, 
+                        title="Complejidad",
+                        sort=['Baja', 'Media', 'Alta']),
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
-            alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
+            alt.Tooltip(col_complejidad, format='.1f', title="Valor Complejidad"),
+            alt.Tooltip('Nivel_Complejidad', title="Rango"),
             alt.Tooltip(col_avance, format='.0f', title="Avance %")
         ]
     ).properties(height=450).interactive()
