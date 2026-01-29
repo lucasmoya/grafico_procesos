@@ -109,7 +109,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA BARRAS HORIZONTALES AGRUPADAS ---
+    # --- GRÁFICO 3: COMPARATIVA BARRAS HORIZONTALES (CONTENIDO AL ANCHO) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,14 +120,22 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Ajuste Horizontal para Altair v4
+    # Usamos un eje Y doble (Proceso + Tipo) en un solo gráfico para respetar el ancho
     chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
-        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+        y=alt.Y('Tipo_Avance:N', title=None),
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left')),
+        row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=10)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
-    ).properties(width=700, height=50).configure_view(stroke=None)
+    ).properties(
+        # Eliminamos el width fijo y usamos 'container' para que Streamlit mande
+        width='container', 
+        height=60
+    ).configure_view(
+        stroke=None
+    ).configure_facet(
+        spacing=10
+    )
 
     st.altair_chart(chart_comparativo, use_container_width=True)
 
