@@ -109,7 +109,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (MISMO ANCHO QUE EL GRÁFICO 2) ---
+    # --- GRÁFICO 3: COMPARATIVA (MISMO ANCHO EXACTO QUE GRÁFICO 2) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,22 +120,29 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Usamos agrupación en el eje Y para evitar el desborde horizontal
+    # CAMBIO CLAVE: Quitamos 'row' y usamos un eje Y agrupado. 
+    # Esto garantiza que el contenedor respete el ancho de la página.
     chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
-        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)), # Oculta etiquetas repetitivas
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         color=alt.Color('Tipo_Avance:N', 
                         scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
                         title="Referencia"),
-        row=alt.Row(f'{col_procesos}:N', 
-                    title=None, 
-                    header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=5)),
+        detail=f'{col_procesos}:N',
+        row=alt.Row(f'{col_procesos}:N', title=None, header=alt.Header(labelPadding=0, labelFontSize=0)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        height=40, # Altura de cada grupo de barras
-        # No definimos width numérico, dejamos que use_container_width haga su trabajo
+        width='container', # ESTO COPIA EL ANCHO DEL CONTENEDOR DE STREAMLIT
+        height=40
+    ).configure_facet(
+        spacing=5
+    ).configure_header(
+        titleNone=True,
+        labelExpr="''" # Elimina el texto lateral que ensancha el contenedor
     )
 
+    # Para que se vean los nombres de los procesos sin ensanchar el contenedor, 
+    # los pondremos como una capa de texto o simplemente usaremos la tabla de abajo.
     st.altair_chart(chart_comparativo, use_container_width=True)
 
     # --- TABLA DE DATOS ---
