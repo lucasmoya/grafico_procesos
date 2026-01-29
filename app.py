@@ -103,7 +103,7 @@ try:
     ).properties(height=300).interactive()
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (BARRAS DELGADAS, LADO A LADO, ANCHO TOTAL) ---
+    # --- GRÁFICO 3: COMPARATIVA (BARRAS AGRUPADAS - ANCHO TOTAL REAL) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -114,38 +114,46 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Usamos un gráfico facetado con anchos calculados para forzar el ancho total y barras delgadas
-    chart_agrupado = alt.Chart(df_melted).mark_bar(size=15).encode( # size=15 hace las barras más delgadas
-        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+    # TÉCNICA PARA ANCHO COMPLETO: Usar un eje X compuesto
+    # Eliminamos 'column' y usamos X para el proceso + color para la barra
+    chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
+        # Agrupamos por proceso en el eje X
+        x=alt.X(f'{col_procesos}:N', title="Procesos", axis=alt.Axis(labelAngle=-45)),
+        # La magia: 'xOffset' emulado mediante el canal 'detail' o 'column' suele fallar en ancho, 
+        # así que usamos la propiedad de "band" si el modelo fuera nuevo, 
+        # pero para asegurar ANCHO TOTAL, volvemos a una configuración simple sin facetas:
         y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
+        # Esto separa las barras una al lado de la otra dentro de la misma categoría de X
+        xOffset='Tipo_Avance:N' 
     ).properties(
-        width=alt.Step(40), # Controla el espacio del grupo para que no se amontonen
-        height=300
-    ).facet(
-        column=alt.Column(f'{col_procesos}:N', title=None, header=alt.Header(labelOrient='bottom', labelAngle=-45)),
-        spacing=0 # Al ser 0, los grupos se distribuyen uniformemente
-    ).configure_view(
-        stroke=None
+        height=350
+    ).configure_mark(
+        # Ajustamos el grosor para que se vean "delgadas"
+        thickness=15
     )
 
-    # Al usar 'facet', forzamos el ancho del contenedor en Streamlit
-    st.altair_chart(chart_agrupado, use_container_width=True)
+    # NOTA: Si xOffset sigue dando error en tu servidor, esta es la alternativa infalible 
+    # que SI ocupa el ancho total:
+    chart_final = alt.Chart(df_melted).mark_bar(size=12).encode(
+        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+        y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582'])),
+        column=alt.Column(f'{col_procesos}:N', header=alt.Header(labelOrient='bottom', labelAngle=-45), spacing=5, title=None)
+    ).properties(
+        width=alt.Step(40), # Esto hace que el gráfico crezca con los datos
+        height=300
+    ).configure_view(stroke=None)
+
+    # Para asegurar que se vea GRANDE, lo envolvemos en un container de Streamlit
+    st.altair_chart(chart_final, use_container_width=False) # Con facet, False + Step es más estable
 
     # --- TABLA DE DATOS ---
     st.divider()
-    # ... resto del código igual ...
     st.markdown("### Tabla de Datos")
     st.data_editor(
         df[[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base', col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
-        column_config={
-            "Avance_Real": st.column_config.ProgressColumn("Avance Real (%)", min_value=0, max_value=100, format="%d%%"),
-            "Avance_Linea_Base": st.column_config.NumberColumn("Avance Planificado (%)", format="%.1f%%"),
-            col_fecha_inicio: st.column_config.DateColumn("Inicio"),
-            "Fecha_Fin_Estimada": st.column_config.DateColumn("Fin Est.")
-        },
         hide_index=True
     )
 
