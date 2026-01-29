@@ -60,10 +60,10 @@ try:
     # --- CÁLCULOS DE AVANCE ---
     hoy = pd.to_datetime(datetime.now().date())
 
-    # 1. Avance Real (Asegurando formato 0-100)
+    # 1. Avance Real (0-100)
     df['Avance_Real'] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
-    # 2. Avance Línea Base (Planificado por tiempo transcurrido)
+    # 2. Avance Línea Base
     def calcular_linea_base(row):
         total_dias = (row['Fecha_Fin_Estimada'] - row[col_fecha_inicio]).days
         dias_transcurridos = (hoy - row[col_fecha_inicio]).days
@@ -109,7 +109,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA BARRAS AGRUPADAS (POSICIÓN 3 Y ANCHO COMPLETO) ---
+    # --- GRÁFICO 3: COMPARATIVA (VERSION COMPATIBLE V4 + ANCHO COMPLETO) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,16 +120,16 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Ajuste para ocupar todo el ancho usando el canal X para el Proceso y xOffset para las barras
+    # Usamos Facet para agrupar barras de forma compatible con Altair v4
     chart_agrupado = alt.Chart(df_melted).mark_bar().encode(
-        x=alt.X(f'{col_procesos}:N', title="Procesos", axis=alt.Axis(labelAngle=-45)),
+        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False)),
         y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        xOffset='Tipo_Avance:N', # Esto crea el efecto de barras agrupadas una al lado de la otra
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
+        column=alt.Column(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelOrient='bottom', labelAngle=-45)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
-    ).properties(height=400)
+    ).properties(width=100, height=400) # El ancho 'width' se aplica a cada sub-gráfico (proceso)
 
-    st.altair_chart(chart_agrupado, use_container_width=True)
+    st.altair_chart(chart_agrupado) # Nota: Los gráficos con 'column' no soportan use_container_width=True, se ajustan por el width de las barras
 
     # --- TABLA DE DATOS ---
     st.divider()
@@ -140,8 +140,6 @@ try:
         column_config={
             "Avance_Real": st.column_config.ProgressColumn("Avance Real (%)", min_value=0, max_value=100, format="%d%%"),
             "Avance_Linea_Base": st.column_config.NumberColumn("Avance Planificado (%)", format="%.1f%%"),
-            col_fecha_inicio: st.column_config.DateColumn("Inicio"),
-            "Fecha_Fin_Estimada": st.column_config.DateColumn("Fin Est.")
         },
         hide_index=True
     )
