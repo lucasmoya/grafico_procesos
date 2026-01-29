@@ -12,7 +12,7 @@ st.subheader("Dashboard - Avance de Procesos")
 file_path = "Procesos_Grafico.xlsx"
 
 if os.path.exists(file_path):
-    source_df = pd.read_excel(file_path, sheet_name='Procesos')
+    source_df = pd.read_excel(file_path, sheet_name='Granel')
     st.info(f"📂 Datos cargados automáticamente desde el repositorio.")
 else:
     uploaded_file = st.file_uploader("Selecciona el archivo Excel", type=["xlsx"])
