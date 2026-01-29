@@ -96,7 +96,7 @@ try:
 
     # --- GRÁFICO DE AVANCE CON LEYENDA ---
     st.divider()
-    st.subheader("Gráfico de Avance por Proceso - Granel")
+    st.markdown("Gráfico de Avance por Proceso - Granel")
 
     # Definimos la escala de colores para la leyenda
     color_scale = alt.Scale(
@@ -123,7 +123,7 @@ try:
     st.altair_chart(chart_bars, use_container_width=True)
 
     # --- TABLA DE DATOS ---
-    st.subheader("Tabla de Datos de Procesos - Granel")
+    st.markdown("Tabla de Datos de Procesos - Granel")
     st.data_editor(
         df[[col_procesos, col_complejidad, col_avance, col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
