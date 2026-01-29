@@ -79,7 +79,7 @@ try:
 
     # --- CRONOGRAMA ---
     st.divider()
-    st.subheader("Cronograma Estimado de Procesos")
+    st.subheader("Gantt de Procesos - Granel")
     
     bars_timeline = alt.Chart(df).mark_bar(size=20).encode(
         x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
