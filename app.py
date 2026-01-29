@@ -109,7 +109,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (MISMO FORMATO QUE GRÁFICO 2) ---
+    # --- GRÁFICO 3: COMPARATIVA (MISMO FORMATO Y ANCHO QUE GRÁFICO 2) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,16 +120,26 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Agrupación interna: un solo eje Y para procesos y desplazamiento para separar barras
-    chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
+    # Truco para Altair v4: Usamos el eje Y para el proceso y el color para las barras.
+    # Para que queden una arriba de la otra, las agrupamos en el eje Y.
+    chart_comparativo = alt.Chart(df_melted).mark_bar(size=15).encode(
+        # Eje Y principal: Proceso
         y=alt.Y(f'{col_procesos}:N', title="Procesos", sort='-x'),
-        yOffset='Tipo_Avance:N', # Esta es la clave: separa las barras sin crear sub-filas
+        # Eje Y secundario (dentro de cada proceso): Tipo de Avance
+        # Esto separa las barras físicamente sin usar yOffset
+        y2=alt.Y('Tipo_Avance:N'), 
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Tipo_Avance:N', 
                         scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
                         title="Referencia"),
+        # Agrupamos por proceso para mantener la estructura compacta
+        detail=f'{col_procesos}:N',
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
-    ).properties(height=400).interactive()
+    ).properties(
+        height=alt.Step(50) # Altura fija por cada proceso para estandarizar
+    ).configure_view(
+        stroke=None
+    )
 
     st.altair_chart(chart_comparativo, use_container_width=True)
 
