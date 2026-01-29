@@ -18,7 +18,9 @@ if os.path.exists(file_path):
 else:
     uploaded_file = st.file_uploader("Selecciona el archivo Excel", type=["xlsx"])
     if uploaded_file:
-        source_df = pd.read_excel(uploaded_file, sheet_name='Procesos')
+        # Nota: Ajustado a 'Granel' para coincidir con el flujo automático, 
+        # cámbialo a 'Procesos' si tu archivo manual usa ese nombre.
+        source_df = pd.read_excel(uploaded_file, sheet_name='Granel')
     else:
         st.warning("Esperando archivo Excel...")
         st.stop()
@@ -26,7 +28,10 @@ else:
 # Funciones de utilidad
 def extraer_complejidad(valor):
     try:
-        num = float(str(valor).split(':')[-1].replace(',', '.').strip()) if isinstance(valor, str) else float(valor)
+        if isinstance(valor, str) and ':' in valor:
+            num = float(valor.split(':')[-1].replace(',', '.').strip())
+        else:
+            num = float(valor)
         return round(num, 1)
     except: return 0.0
 
@@ -109,7 +114,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA BARRAS AGRUPADAS (POSICIÓN 3 Y ANCHO COMPLETO) ---
+    # --- GRÁFICO 3: COMPARATIVA BARRAS AGRUPADAS (Solución para Altair v4) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,16 +125,16 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Ajuste para ocupar todo el ancho usando el canal X para el Proceso y xOffset para las barras
+    # En Altair v4, las barras agrupadas se crean usando facetas (column)
     chart_agrupado = alt.Chart(df_melted).mark_bar().encode(
-        x=alt.X(f'{col_procesos}:N', title="Procesos", axis=alt.Axis(labelAngle=-45)),
+        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        xOffset='Tipo_Avance:N', # Esto crea el efecto de barras agrupadas una al lado de la otra
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
+        column=alt.Column(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelOrient='bottom', labelAngle=-45)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
-    ).properties(height=400)
+    ).properties(width=80, height=350).configure_view(stroke=None)
 
-    st.altair_chart(chart_agrupado, use_container_width=True)
+    st.altair_chart(chart_agrupado, use_container_width=False)
 
     # --- TABLA DE DATOS ---
     st.divider()
