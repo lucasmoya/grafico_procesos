@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mtick
 import altair as alt
 import os
 
@@ -24,7 +22,7 @@ else:
         st.warning("Esperando archivo Excel...")
         st.stop()
 
-def asignar_color(valor):
+def asignar_color_barra(valor):
     try:
         num = float(str(valor).split(':')[-1].replace(',', '.').strip()) if isinstance(valor, str) else float(valor)
         if 1 <= num < 4: return '#71c071' # Verde
@@ -42,7 +40,7 @@ try:
     col_status = 'Status del proceso'
 
     df = df.dropna(subset=[col_procesos])
-    df['Color_Barra'] = df[col_complejidad].apply(asignar_color)
+    df['Color_Barra'] = df[col_complejidad].apply(asignar_color_barra)
     df[col_avance] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
     # --- KPIs SUPERIORES ---
@@ -54,43 +52,46 @@ try:
         en_curso = len(df[df[col_status] == "En curso"])
         m3.metric("Procesos en Curso", en_curso)
 
-    # --- GRÁFICOS LADO A LADO ---
+    # --- GRÁFICO INTERACTIVO (Ancho completo) ---
     st.divider()
-    col_izq, col_der = st.columns([2, 1]) # La izquierda es más ancha para las barras
+    st.subheader("Gráfico Interactivo de Avance por Proceso")
+    
+    chart_bars = alt.Chart(df).mark_bar().encode(
+        x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
+        color=alt.Color('Color_Barra:N', scale=None),
+        tooltip=[col_procesos, col_complejidad, col_avance, col_status]
+    ).properties(height=450).interactive()
+    
+    st.altair_chart(chart_bars, use_container_width=True)
 
-    with col_izq:
-        st.subheader("Gráfico Interactivo de Avance")
-        chart_bars = alt.Chart(df).mark_bar().encode(
-            x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
-            y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
-            color=alt.Color('Color_Barra:N', scale=None),
-            tooltip=[col_procesos, col_complejidad, col_avance, col_status]
-        ).properties(height=400).interactive()
-        st.altair_chart(chart_bars, use_container_width=True)
-
-    with col_der:
-        if col_status in df.columns:
-            st.subheader("Distribución de Estatus")
-            status_chart = alt.Chart(df).mark_arc(innerRadius=60).encode(
-                theta=alt.Theta(field=col_status, type="quantitative", aggregate="count"),
-                color=alt.Color(field=col_status, type="nominal", title="Estado"),
-                tooltip=[col_status, 'count()']
-            ).properties(height=400)
-            st.altair_chart(status_chart, use_container_width=True)
-
-    # --- EDITOR DE DATOS ---
+    # --- TABLA DE DATOS CON COLORES ---
     st.divider()
     st.subheader("Tabla de Datos de Procesos")
-    st.write("Cualquier cambio aquí actualizará los gráficos de arriba al instante (en esta sesión):")
     
-    # El editor usa el DF procesado para que los cambios se vean en los gráficos
-    df_editado = st.data_editor(
+    # Definimos los colores para el estatus en la tabla
+    # Listo = Verde, En curso = Amarillo, No iniciado = Rojo
+    st.data_editor(
         df[[col_procesos, col_complejidad, col_avance, col_status]], 
         use_container_width=True,
         column_config={
-            col_avance: st.column_config.ProgressColumn("Avance", min_value=0, max_value=100, format="%f%%")
+            col_avance: st.column_config.ProgressColumn(
+                "Avance", 
+                min_value=0, 
+                max_value=100, 
+                format="%f%%"
+            ),
+            col_status: st.column_config.SelectboxColumn(
+                "Estatus",
+                help="Estado actual del proceso",
+                options=["Listo", "En curso", "No iniciado"],
+                required=True,
+            )
         }
     )
+
+    # Nota: Streamlit nativo no permite pintar el fondo de la celda en data_editor 
+    # dinámicamente según texto, pero el SelectboxColumn facilita la edición.
 
 except Exception as e:
     st.error(f"Error al procesar: {e}")
