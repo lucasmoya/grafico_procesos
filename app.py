@@ -8,7 +8,7 @@ import os
 # Configuración de la página
 st.set_page_config(page_title="Dashboard de Procesos", layout="wide")
 
-st.title("📊 Monitor de Avance de Procesos")
+st.title("Dashboard - Avance de Procesos")
 
 # 1. Lógica de consumo automático o manual
 file_path = "Procesos_Grafico.xlsx"
@@ -46,29 +46,9 @@ try:
     df['Color'] = df[col_complejidad].apply(asignar_color)
     df[col_avance] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
-    # --- GRÁFICO 1: MATPLOTLIB (Imagen) ---
-    st.subheader("🖼️ Vista Estática (Matplotlib)")
-    fig, ax = plt.subplots(figsize=(10, 5))
-    bars = ax.barh(df[col_procesos], df[col_avance], color=df['Color'], edgecolor='black')
-    ax.set_xlim(0, 100)
-    ax.invert_yaxis() 
-    ax.xaxis.set_major_formatter(mtick.PercentFormatter())
-    
-    for i, bar in enumerate(bars):
-        avance_val = df[col_avance].iloc[i]
-        raw_comp = df[col_complejidad].iloc[i]
-        try:
-            num_comp = float(str(raw_comp).split(':')[-1].replace(',', '.').strip()) if isinstance(raw_comp, str) else float(raw_comp)
-            texto_comp = f"{num_comp:.2f}".replace('.', ',') 
-        except: texto_comp = str(raw_comp)
-        ax.text(1, bar.get_y() + bar.get_height()/2, f"Comp: {texto_comp}", va='center', fontweight='bold', fontsize=8)
-        ax.text(avance_val + 1, bar.get_y() + bar.get_height()/2, f"{avance_val:.0f}%", va='center')
-
-    st.pyplot(fig)
-
     # --- GRÁFICO 2: ALTAIR (Interactivo Nativo de Streamlit) ---
     st.divider()
-    st.subheader("🖱️ Vista Interactiva (Nativo de Streamlit)")
+    st.subheader("Gráfico Interactivo de Avance por Proceso")
     
     # Creamos el gráfico interactivo
     chart = alt.Chart(df).mark_bar().encode(
