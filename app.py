@@ -6,7 +6,7 @@ import os
 # Configuración de la página
 st.set_page_config(page_title="Dashboard de Procesos", layout="wide")
 
-st.title("📊 Dashboard - Avance de Procesos")
+st.subheader("Dashboard - Avance de Procesos")
 
 # 1. Lógica de consumo de datos
 file_path = "Procesos_Grafico.xlsx"
