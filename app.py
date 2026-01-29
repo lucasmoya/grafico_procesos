@@ -99,20 +99,19 @@ try:
     st.altair_chart((bars_timeline + linea_hoy).properties(height=350).interactive(), use_container_width=True)
 
     # --- GRÁFICO 2: DETALLE DE AVANCE INDIVIDUAL ---
-    st.divider()
-    st.markdown("### 2. Detalle de Avance por Proceso")
+    # Ajustamos el ancho para que coincida con el 3
     chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
         x=alt.X('Avance_Real:Q', 
                 title='Avance Real (%)', 
                 scale=alt.Scale(domain=[0, 100]),
-                axis=alt.Axis(values=list(range(0, 101, 5)))), # Escala de 5 en 5
+                axis=alt.Axis(values=list(range(0, 101, 10)))), # Reducimos marcas a 10 en 10 para ganar aire
         y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x', axis=alt.Axis(labelLimit=100)),
         tooltip=[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base']
-    ).properties(height=300).interactive()
+    ).properties(width=700, height=300).interactive()
 
-    st.altair_chart(chart_bars, use_container_width=True)
+    st.altair_chart(chart_bars, use_container_width=False) # False para respetar el width=700
 
-    # --- GRÁFICO 3: COMPARATIVA (MISMO TAMAÑO Y ESCALA DE 5 EN 5) ---
+    # --- GRÁFICO 3: COMPARATIVA (FORZANDO ACHICAR ESPACIO) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -127,7 +126,7 @@ try:
         x=alt.X('Porcentaje:Q', 
                 title="Cumplimiento (%)", 
                 scale=alt.Scale(domain=[0, 100]),
-                axis=alt.Axis(values=list(range(0, 101, 5)))), # Escala de 5 en 5 corregida
+                axis=alt.Axis(values=list(range(0, 101, 10)))), # Etiquetas cada 10 para que no se amontonen
         y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         color=alt.Color('Tipo_Avance:N', 
                         scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
@@ -137,7 +136,7 @@ try:
                     header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=10, labelLimit=100)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        width='container', # Forzar que use el ancho del contenedor de Streamlit
+        width=700, # AQUÍ ACHICAMOS EL ESPACIO ENTRE LÍNEAS (0, 10, 20...)
         height=40
     ).configure_facet(
         spacing=5
@@ -145,7 +144,7 @@ try:
         stroke=None
     )
 
-    st.altair_chart(chart_comparativo, use_container_width=True)
+    st.altair_chart(chart_comparativo, use_container_width=False)
 
     # --- TABLA DE DATOS ---
     st.divider()
@@ -153,12 +152,6 @@ try:
     st.data_editor(
         df[[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base', col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
-        column_config={
-            "Avance_Real": st.column_config.ProgressColumn("Avance Real (%)", min_value=0, max_value=100, format="%d%%"),
-            "Avance_Linea_Base": st.column_config.NumberColumn("Avance Planificado (%)", format="%.1f%%"),
-            col_fecha_inicio: st.column_config.DateColumn("Inicio"),
-            "Fecha_Fin_Estimada": st.column_config.DateColumn("Fin Est.")
-        },
         hide_index=True
     )
 
