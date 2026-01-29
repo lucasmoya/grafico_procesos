@@ -98,7 +98,7 @@ try:
     )
 
     hoy = pd.to_datetime(datetime.now().date())
-    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='blue', strokeDash=[5, 5]).encode(x='hoy:T')
+    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='red', strokeDash=[5, 5]).encode(x='hoy:T')
     
     st.altair_chart((bars_timeline + linea_hoy).properties(height=300).interactive(), use_container_width=True)
 
@@ -114,7 +114,7 @@ try:
             alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
             alt.Tooltip(col_avance, format='.0f', title="Avance %")
         ]
-    ).properties(height=450).interactive()
+    ).properties(height=300).interactive()
 
     st.altair_chart(chart_bars, use_container_width=True)
 
