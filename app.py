@@ -71,7 +71,7 @@ try:
 
     # --- CRONOGRAMA CON LÍNEA DE DÍA ACTUAL ---
     st.divider()
-    st.subheader("Cronograma Estimado de Procesos")
+    st.subheader("Cronograma Estimado de Procesos - Granel")
     
     # 1. Las barras del cronograma
     bars = alt.Chart(df).mark_bar(size=20).encode(
@@ -115,7 +115,6 @@ try:
     st.altair_chart(chart_timeline, use_container_width=True)
 
     # --- GRÁFICO DE AVANCE ---
-    st.divider()
     st.subheader("Gráfico de Avance por Proceso - Granel")
 
     chart_bars = alt.Chart(df).mark_bar().encode(
