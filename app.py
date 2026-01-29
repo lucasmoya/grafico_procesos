@@ -13,7 +13,6 @@ st.subheader("Dashboard - Avance de Procesos")
 file_path = "Procesos_Grafico.xlsx"
 
 if os.path.exists(file_path):
-    # Se asume que el Excel tiene las columnas de los hitos (I, J, K, L, M, N)
     source_df = pd.read_excel(file_path, sheet_name='Granel')
     st.info(f"📂 Datos cargados automáticamente desde el repositorio.")
 else:
@@ -25,6 +24,7 @@ else:
         st.stop()
 
 def extraer_complejidad(valor):
+    """Extrae el número y lo devuelve con 1 decimal."""
     try:
         num = float(str(valor).split(':')[-1].replace(',', '.').strip()) if isinstance(valor, str) else float(valor)
         return round(num, 1)
@@ -32,6 +32,7 @@ def extraer_complejidad(valor):
         return 0.0
 
 def categorizar_complejidad(valor):
+    """Asigna la etiqueta de texto para la leyenda."""
     if 1 <= valor < 4: return 'Baja'
     elif 4 <= valor < 7: return 'Media'
     elif valor >= 7: return 'Alta'
@@ -42,97 +43,93 @@ try:
     df = source_df.copy()
     col_procesos = 'Procesos'
     col_complejidad = 'Complejidad'
+    col_avance = '% de avance'
     col_status = 'Status del proceso'
+    
     col_fecha_inicio = 'Fecha Inicio'
     col_tiempo_meses = 'Tiempo en meses'
-    
-    # Pesos según tu imagen
-    pesos_hitos = {'I': 0.1875, 'J': 0.0625, 'K': 0.1406, 'L': 0.3750, 'M': 0.1406, 'N': 0.0938}
 
     df = df.dropna(subset=[col_procesos])
     df[col_complejidad] = df[col_complejidad].apply(extraer_complejidad)
     df['Nivel_Complejidad'] = df[col_complejidad].apply(categorizar_complejidad)
-    
-    # 1. CÁLCULO DE AVANCE REAL (Basado en Checkboxes/Hitos)
-    # Asumiendo que las columnas I, J, K, L, M, N existen y contienen Booleanos o 1/0
-    def calcular_avance_real(row):
-        avance = 0
-        for hito, peso in pesos_hitos.items():
-            if hito in row and (row[hito] == True or row[hito] == 1):
-                avance += peso
-        return avance * 100
+    df[col_avance] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
-    df['Avance_Real'] = df.apply(calcular_avance_real, axis=1)
-
-    # 2. CÁLCULO DE LÍNEA BASE Y FECHAS
+    # CÁLCULO DE FECHA DE TÉRMINO
     df[col_fecha_inicio] = pd.to_datetime(df[col_fecha_inicio])
     df['Fecha_Fin_Estimada'] = df.apply(
         lambda row: row[col_fecha_inicio] + timedelta(days=int(row[col_tiempo_meses] * 30.44)), 
         axis=1
     )
 
-    hoy = pd.to_datetime(datetime.now().date())
-
-    def calcular_avance_planificado(row):
-        total_dias = (row['Fecha_Fin_Estimada'] - row[col_fecha_inicio]).days
-        dias_transcurridos = (hoy - row[col_fecha_inicio]).days
-        if total_dias <= 0: return 100.0
-        progreso = (dias_transcurridos / total_dias) * 100
-        return max(0, min(100, progreso)) # Limitado entre 0 y 100%
-
-    df['Avance_Planificado'] = df.apply(calcular_avance_planificado, axis=1)
-
-    # --- KPIs ---
+    # --- KPIs SUPERIORES ---
     st.divider()
     m1, m2, m3 = st.columns(3)
-    m1.metric("Avance Real Promedio", f"{df['Avance_Real'].mean():.1f}%")
-    m2.metric("Desviación Promedio", f"{(df['Avance_Real'].mean() - df['Avance_Planificado'].mean()):.1f}%")
-    m3.metric("Total de Procesos", len(df))
+    m1.metric("Avance Promedio", f"{df[col_avance].mean():.1f}%")
+    m2.metric("Total de Procesos", len(df))
+    if col_status in df.columns:
+        en_curso = len(df[df[col_status].str.contains("curso", case=False, na=False)])
+        m3.metric("Procesos en Curso", en_curso)
 
-    # --- CRONOGRAMA GANTT ---
+    # --- CRONOGRAMA (CON LEYENDA DE COMPLEJIDAD) ---
     st.divider()
-    st.markdown("### Gantt de Procesos - Granel (Complejidad)")
-    color_scale = alt.Scale(domain=['Baja', 'Media', 'Alta'], range=['#71c071', '#f9d978', '#ff7676'])
+    st.markdown("Gantt de Procesos - Granel")
+    
+    # Escala de colores para la complejidad
+    color_scale = alt.Scale(
+        domain=['Baja', 'Media', 'Alta'],
+        range=['#71c071', '#f9d978', '#ff7676']
+    )
 
     bars_timeline = alt.Chart(df).mark_bar(size=20).encode(
-        x=alt.X(f'{col_fecha_inicio}:T', title="Tiempo"),
+        x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
         x2='Fecha_Fin_Estimada:T',
-        y=alt.Y(f'{col_procesos}:N', sort='x'),
-        color=alt.Color('Nivel_Complejidad:N', scale=color_scale, title="Complejidad"),
-        tooltip=[col_procesos, 'Avance_Real', 'Avance_Planificado']
+        y=alt.Y(f'{col_procesos}:N', sort='x', title="Procesos"),
+        color=alt.Color('Nivel_Complejidad:N', 
+                        scale=color_scale, 
+                        title="Complejidad",
+                        sort=['Baja', 'Media', 'Alta']),
+        tooltip=[
+            alt.Tooltip(col_procesos, title="Proceso"),
+            alt.Tooltip(col_fecha_inicio, title="Inicio"),
+            alt.Tooltip('Fecha_Fin_Estimada', title="Fin Proyectado"),
+            alt.Tooltip('Nivel_Complejidad', title="Complejidad"),
+            alt.Tooltip(col_avance, title="Avance actual %")
+        ]
     )
+
+    hoy = pd.to_datetime(datetime.now().date())
     linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='red', strokeDash=[5, 5]).encode(x='hoy:T')
+    
     st.altair_chart((bars_timeline + linea_hoy).properties(height=400).interactive(), use_container_width=True)
 
-    # --- NUEVO GRÁFICO: COMPARATIVA REAL VS PLANIFICADO ---
+    # --- GRÁFICO DE AVANCE (BARRAS DE UN SOLO COLOR) ---
     st.divider()
-    st.markdown("### Comparativa: Avance Real vs. Línea Base (Planificado)")
-    
-    # Preparar datos para gráfico de barras comparativas
-    df_melted = df.melt(id_vars=[col_procesos], value_vars=['Avance_Real', 'Avance_Planificado'], 
-                        var_name='Tipo_Avance', value_name='Porcentaje')
+    st.markdown("Gráfico de Avance por Proceso - Granel")
 
-    comparativa_chart = alt.Chart(df_melted).mark_bar().encode(
-        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False)),
-        y=alt.Y('Porcentaje:Q', title='Porcentaje (%)', scale=alt.Scale(domain=[0, 100])),
-        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#A75252']), title="Tipo de Avance"),
-        column=alt.Column(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=-45, labelAlign='right')),
-        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
-    ).properties(width=100, height=300)
+    chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
+        x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
+        tooltip=[
+            alt.Tooltip(col_procesos, title="Proceso"),
+            alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
+            alt.Tooltip(col_avance, format='.0f', title="Avance %")
+        ]
+    ).properties(height=250).interactive()
 
-    st.altair_chart(comparativa_chart)
+    st.altair_chart(chart_bars, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
-    st.markdown("### Detalle de Avances y Fechas")
+    st.markdown("Tabla de Datos de Procesos - Granel")
     st.data_editor(
-        df[[col_procesos, 'Avance_Real', 'Avance_Planificado', col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
+        df[[col_procesos, col_complejidad, col_avance, col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
         column_config={
-            "Avance_Real": st.column_config.ProgressColumn("Avance Real (%)", min_value=0, max_value=100, format="%.1f%%"),
-            "Avance_Planificado": st.column_config.ProgressColumn("Línea Base (%)", min_value=0, max_value=100, format="%.1f%%"),
-            col_fecha_inicio: st.column_config.DateColumn("Inicio"),
-            "Fecha_Fin_Estimada": st.column_config.DateColumn("Fin Proyectado")
+            col_complejidad: st.column_config.NumberColumn("Complejidad", format="%.1f"),
+            col_avance: st.column_config.ProgressColumn("Avance (%)", min_value=0, max_value=100, format="%d%%"),
+            col_status: st.column_config.SelectboxColumn("Estatus", options=["Listo", "En curso", "No iniciado"], required=True),
+            col_fecha_inicio: st.column_config.DateColumn("Fecha Inicio"),
+            "Fecha_Fin_Estimada": st.column_config.DateColumn("Fin Estimado")
         },
         hide_index=True
     )
