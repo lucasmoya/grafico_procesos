@@ -102,7 +102,7 @@ try:
     ).properties(height=300).interactive()
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA HORIZONTAL (ESTILO DASHBOARD) ---
+    # --- GRÁFICO 3: COMPARATIVA HORIZONTAL CORREGIDA ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -113,22 +113,20 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Gráfico horizontal agrupado por proceso
-    chart_comparativa_h = alt.Chart(df_melted).mark_bar(height=15).encode(
-        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+    # Usamos yOffset para agrupar las barras sin usar 'Row' o 'Facet', permitiendo el ancho 1:1
+    chart_comparativa = alt.Chart(df_melted).mark_bar().encode(
+        y=alt.Y(f'{col_procesos}:N', title="Procesos"),
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        row=alt.Row(f'{col_procesos}:N', title=None, header=alt.Header(labelAngle=0, labelAlign='left')),
+        yOffset='Tipo_Avance:N', # Esto pone las barras una al lado de la otra (Real vs Base)
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        height=40 # Altura de cada "par" de barras por proceso
-    ).configure_facet(
-        spacing=5 # Espacio entre cada proceso
-    ).configure_view(
-        stroke=None
+        # Ajustamos la altura total dinámicamente según la cantidad de procesos para que no se vea apretado
+        height=len(df) * 40 
     )
 
-    st.altair_chart(chart_comparativa_h, use_container_width=True)
+    # Ahora use_container_width=True funcionará perfectamente igual que en los otros gráficos
+    st.altair_chart(chart_comparativa, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
@@ -139,8 +137,6 @@ try:
         column_config={
             "Avance_Real": st.column_config.ProgressColumn("Avance Real (%)", min_value=0, max_value=100, format="%d%%"),
             "Avance_Linea_Base": st.column_config.NumberColumn("Avance Planificado (%)", format="%.1f%%"),
-            col_fecha_inicio: st.column_config.DateColumn("Inicio"),
-            "Fecha_Fin_Estimada": st.column_config.DateColumn("Fin Est.")
         },
         hide_index=True
     )
