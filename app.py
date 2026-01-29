@@ -38,12 +38,6 @@ def categorizar_complejidad(valor):
     elif valor >= 7: return 'Alta'
     return 'N/A'
 
-def asignar_color_barra(valor):
-    if 1 <= valor < 4: return '#71c071' # Verde
-    elif 4 <= valor < 7: return '#f9d978' # Amarillo
-    elif valor >= 7: return '#ff7676' # Rojo
-    return 'grey'
-
 try:
     # --- PROCESAMIENTO ---
     df = source_df.copy()
@@ -58,7 +52,6 @@ try:
     df = df.dropna(subset=[col_procesos])
     df[col_complejidad] = df[col_complejidad].apply(extraer_complejidad)
     df['Nivel_Complejidad'] = df[col_complejidad].apply(categorizar_complejidad)
-    df['Color_Barra'] = df[col_complejidad].apply(asignar_color_barra)
     df[col_avance] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
     # CÁLCULO DE FECHA DE TÉRMINO
@@ -77,45 +70,48 @@ try:
         en_curso = len(df[df[col_status].str.contains("curso", case=False, na=False)])
         m3.metric("Procesos en Curso", en_curso)
 
-    # --- CRONOGRAMA ---
+    # --- CRONOGRAMA (CON LEYENDA DE COMPLEJIDAD) ---
     st.divider()
-    st.markdown("Gantt de Procesos - Granel")
+    st.markdown("### Gantt de Procesos - Granel")
     
-    bars_timeline = alt.Chart(df).mark_bar(size=20).encode(
-        x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
-        x2='Fecha_Fin_Estimada:T',
-        y=alt.Y(f'{col_procesos}:N', sort='x', title="Procesos"),
-        color=alt.Color('Color_Barra:N', scale=None),
-        tooltip=[col_procesos, col_fecha_inicio, 'Fecha_Fin_Estimada', col_avance]
-    )
-
-    hoy = pd.to_datetime(datetime.now().date())
-    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='white', strokeDash=[5, 5]).encode(x='hoy:T')
-    
-    st.altair_chart((bars_timeline + linea_hoy).properties(height=400).interactive(), use_container_width=True)
-
-    # --- GRÁFICO DE AVANCE CON LEYENDA ---
-    st.divider()
-    st.markdown("Gráfico de Avance por Proceso - Granel")
-
-    # Definimos la escala de colores para la leyenda
+    # Escala de colores para la complejidad
     color_scale = alt.Scale(
         domain=['Baja', 'Media', 'Alta'],
         range=['#71c071', '#f9d978', '#ff7676']
     )
 
-    chart_bars = alt.Chart(df).mark_bar().encode(
-        x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
-        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
-        # Aquí mapeamos el color a la columna de categoría y aplicamos la leyenda
+    bars_timeline = alt.Chart(df).mark_bar(size=20).encode(
+        x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
+        x2='Fecha_Fin_Estimada:T',
+        y=alt.Y(f'{col_procesos}:N', sort='x', title="Procesos"),
         color=alt.Color('Nivel_Complejidad:N', 
                         scale=color_scale, 
                         title="Complejidad",
                         sort=['Baja', 'Media', 'Alta']),
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
-            alt.Tooltip(col_complejidad, format='.1f', title="Valor Complejidad"),
-            alt.Tooltip('Nivel_Complejidad', title="Rango"),
+            alt.Tooltip(col_fecha_inicio, title="Inicio"),
+            alt.Tooltip('Fecha_Fin_Estimada', title="Fin Proyectado"),
+            alt.Tooltip('Nivel_Complejidad', title="Complejidad"),
+            alt.Tooltip(col_avance, title="Avance actual %")
+        ]
+    )
+
+    hoy = pd.to_datetime(datetime.now().date())
+    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='blue', strokeDash=[5, 5]).encode(x='hoy:T')
+    
+    st.altair_chart((bars_timeline + linea_hoy).properties(height=400).interactive(), use_container_width=True)
+
+    # --- GRÁFICO DE AVANCE (BARRAS DE UN SOLO COLOR) ---
+    st.divider()
+    st.markdown("### Gráfico de Avance por Proceso - Granel")
+
+    chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
+        x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
+        tooltip=[
+            alt.Tooltip(col_procesos, title="Proceso"),
+            alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
             alt.Tooltip(col_avance, format='.0f', title="Avance %")
         ]
     ).properties(height=450).interactive()
@@ -123,7 +119,8 @@ try:
     st.altair_chart(chart_bars, use_container_width=True)
 
     # --- TABLA DE DATOS ---
-    st.markdown("Tabla de Datos de Procesos - Granel")
+    st.divider()
+    st.markdown("### Tabla de Datos de Procesos - Granel")
     st.data_editor(
         df[[col_procesos, col_complejidad, col_avance, col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
