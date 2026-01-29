@@ -98,7 +98,7 @@ try:
     )
 
     hoy = pd.to_datetime(datetime.now().date())
-    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='blue', strokeDash=[5, 5]).encode(x='hoy:T')
+    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='red', strokeDash=[5, 5]).encode(x='hoy:T')
     
     st.altair_chart((bars_timeline + linea_hoy).properties(height=400).interactive(), use_container_width=True)
 
