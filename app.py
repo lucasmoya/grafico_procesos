@@ -109,7 +109,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (MISMO FORMATO QUE GRÁFICO 2) ---
+    # --- GRÁFICO 3: COMPARATIVA (MISMO ANCHO QUE EL GRÁFICO 2) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,24 +120,20 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Esta configuración asegura que el gráfico se contenga exactamente igual al Gráfico 2
+    # Usamos agrupación en el eje Y para evitar el desborde horizontal
     chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
-        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)), # Oculta etiquetas repetitivas
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Tipo_Avance:N', 
                         scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
                         title="Referencia"),
         row=alt.Row(f'{col_procesos}:N', 
                     title=None, 
-                    header=alt.Header(labelAngle=0, labelAlign='left', labelFontSize=12)),
+                    header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=5)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        height=30, # Altura de cada par de barras
-        width="container" # ESTO obliga a que use el ancho de la página igual que los otros
-    ).configure_facet(
-        spacing=5
-    ).configure_view(
-        stroke=None
+        height=40, # Altura de cada grupo de barras
+        # No definimos width numérico, dejamos que use_container_width haga su trabajo
     )
 
     st.altair_chart(chart_comparativo, use_container_width=True)
