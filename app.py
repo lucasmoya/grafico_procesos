@@ -98,31 +98,9 @@ try:
     linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='red', strokeDash=[5, 5]).encode(x='hoy:T')
     st.altair_chart((bars_timeline + linea_hoy).properties(height=350).interactive(), use_container_width=True)
 
-    # --- GRÁFICO 2: COMPARATIVA BARRAS AGRUPADAS (NUEVO) ---
+    # --- GRÁFICO 2: DETALLE DE AVANCE INDIVIDUAL ---
     st.divider()
-    st.markdown("### 2. Comparativa: Avance Real vs Línea Base (Planificado)")
-    
-    # Derretimos el dataframe para el formato de barras agrupadas
-    df_melted = df.melt(
-        id_vars=[col_procesos], 
-        value_vars=['Avance_Real', 'Avance_Linea_Base'],
-        var_name='Tipo_Avance', value_name='Porcentaje'
-    )
-    df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
-
-    chart_agrupado = alt.Chart(df_melted).mark_bar().encode(
-        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False)),
-        y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        column=alt.Column(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelOrient='bottom', labelAngle=-45)),
-        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
-    ).properties(width=alt.Step(40), height=300)
-
-    st.altair_chart(chart_agrupado)
-
-    # --- GRÁFICO 3: DETALLE DE AVANCE INDIVIDUAL ---
-    st.divider()
-    st.markdown("### 3. Detalle de Avance por Proceso")
+    st.markdown("### 2. Detalle de Avance por Proceso")
     chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
         x=alt.X('Avance_Real:Q', title='Avance Real (%)', scale=alt.Scale(domain=[0, 100])),
         y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
@@ -130,6 +108,28 @@ try:
     ).properties(height=300).interactive()
 
     st.altair_chart(chart_bars, use_container_width=True)
+
+    # --- GRÁFICO 3: COMPARATIVA BARRAS AGRUPADAS (POSICIÓN 3 Y ANCHO COMPLETO) ---
+    st.divider()
+    st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
+    
+    df_melted = df.melt(
+        id_vars=[col_procesos], 
+        value_vars=['Avance_Real', 'Avance_Linea_Base'],
+        var_name='Tipo_Avance', value_name='Porcentaje'
+    )
+    df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
+
+    # Ajuste para ocupar todo el ancho usando el canal X para el Proceso y xOffset para las barras
+    chart_agrupado = alt.Chart(df_melted).mark_bar().encode(
+        x=alt.X(f'{col_procesos}:N', title="Procesos", axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+        xOffset='Tipo_Avance:N', # Esto crea el efecto de barras agrupadas una al lado de la otra
+        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
+        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
+    ).properties(height=400)
+
+    st.altair_chart(chart_agrupado, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
