@@ -109,41 +109,29 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (MISMO ANCHO EXACTO QUE GRÁFICO 2) ---
+    # --- GRÁFICO 3: COMPARATIVA (MISMO ANCHO QUE GRÁFICO 2 USANDO CAPAS) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
-    
-    df_melted = df.melt(
-        id_vars=[col_procesos], 
-        value_vars=['Avance_Real', 'Avance_Linea_Base'],
-        var_name='Tipo_Avance', value_name='Porcentaje'
-    )
-    df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # CAMBIO CLAVE: Quitamos 'row' y usamos un eje Y agrupado. 
-    # Esto garantiza que el contenedor respete el ancho de la página.
-    chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
-        x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
-        color=alt.Color('Tipo_Avance:N', 
-                        scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
-                        title="Referencia"),
-        detail=f'{col_procesos}:N',
-        row=alt.Row(f'{col_procesos}:N', title=None, header=alt.Header(labelPadding=0, labelFontSize=0)),
-        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
-    ).properties(
-        width='container', # ESTO COPIA EL ANCHO DEL CONTENEDOR DE STREAMLIT
-        height=40
-    ).configure_facet(
-        spacing=5
-    ).configure_header(
-        titleNone=True,
-        labelExpr="''" # Elimina el texto lateral que ensancha el contenedor
+    # Barra de fondo (Línea Base) - Más gruesa
+    base = alt.Chart(df).mark_bar(size=20, color='#F4A582', opacity=0.6).encode(
+        x=alt.X('Avance_Linea_Base:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y(f'{col_procesos}:N', title="Procesos", sort='-x'),
+        tooltip=[col_procesos, 'Avance_Linea_Base']
     )
 
-    # Para que se vean los nombres de los procesos sin ensanchar el contenedor, 
-    # los pondremos como una capa de texto o simplemente usaremos la tabla de abajo.
-    st.altair_chart(chart_comparativo, use_container_width=True)
+    # Barra frontal (Real) - Más delgada para que se vea la de atrás
+    real = alt.Chart(df).mark_bar(size=10, color='#5276A7').encode(
+        x='Avance_Real:Q',
+        y=alt.Y(f'{col_procesos}:N', sort='-x'),
+        tooltip=[col_procesos, 'Avance_Real']
+    )
+
+    # Combinamos ambas en un solo gráfico
+    chart_final = alt.layer(base, real).properties(height=400)
+
+    st.altair_chart(chart_final, use_container_width=True)
+    st.info("💡 Barra Naranja (Fondo): Línea Base | Barra Azul (Frente): Avance Real")
 
     # --- TABLA DE DATOS ---
     st.divider()
