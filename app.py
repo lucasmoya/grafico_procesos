@@ -109,29 +109,38 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (MISMO ANCHO QUE GRÁFICO 2 USANDO CAPAS) ---
+    # --- GRÁFICO 3: COMPARATIVA (BARRAS SEPARADAS Y ANCHO PERFECTO) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
+    
+    df_melted = df.melt(
+        id_vars=[col_procesos], 
+        value_vars=['Avance_Real', 'Avance_Linea_Base'],
+        var_name='Tipo_Avance', value_name='Porcentaje'
+    )
+    df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Barra de fondo (Línea Base) - Más gruesa
-    base = alt.Chart(df).mark_bar(size=20, color='#F4A582', opacity=0.6).encode(
-        x=alt.X('Avance_Linea_Base:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        y=alt.Y(f'{col_procesos}:N', title="Procesos", sort='-x'),
-        tooltip=[col_procesos, 'Avance_Linea_Base']
+    # Usamos una técnica de "eje Y dual" para separar las barras sin desbordar el contenedor
+    chart_comparativo = alt.Chart(df_melted).mark_bar(size=12).encode(
+        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=True, ticks=False)),
+        x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+        color=alt.Color('Tipo_Avance:N', 
+                        scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
+                        title="Referencia"),
+        row=alt.Row(f'{col_procesos}:N', 
+                    title="Procesos", 
+                    header=alt.Header(labelAngle=0, labelAlign='left', labelFontSize=12)),
+        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
+    ).properties(
+        width=800, # Valor base que use_container_width=True ajustará automáticamente
+        height=40
+    ).configure_view(
+        stroke=None
+    ).configure_facet(
+        spacing=10
     )
 
-    # Barra frontal (Real) - Más delgada para que se vea la de atrás
-    real = alt.Chart(df).mark_bar(size=10, color='#5276A7').encode(
-        x='Avance_Real:Q',
-        y=alt.Y(f'{col_procesos}:N', sort='-x'),
-        tooltip=[col_procesos, 'Avance_Real']
-    )
-
-    # Combinamos ambas en un solo gráfico
-    chart_final = alt.layer(base, real).properties(height=400)
-
-    st.altair_chart(chart_final, use_container_width=True)
-    st.info("💡 Barra Naranja (Fondo): Línea Base | Barra Azul (Frente): Avance Real")
+    st.altair_chart(chart_comparativo, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
