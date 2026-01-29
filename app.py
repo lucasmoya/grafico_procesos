@@ -80,8 +80,7 @@ try:
     st.altair_chart(chart_bars, use_container_width=True)
 
     # --- TABLA DE DATOS CON CONFIGURACIÓN DE COLUMNAS ---
-    st.divider()
-    st.subheader("Tabla de Datos de Procesos")
+    st.subheader("Tabla de Datos de Procesos - Granel")
     
     st.data_editor(
         df[[col_procesos, col_complejidad, col_avance, col_status]], 
