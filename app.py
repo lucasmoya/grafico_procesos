@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # Configuración de la página
 st.set_page_config(page_title="Dashboard de Procesos", layout="wide")
@@ -45,26 +45,16 @@ try:
     col_avance = '% de avance'
     col_status = 'Status del proceso'
     
-    # Nuevas columnas basadas en tu Excel (Q y T)
     col_fecha_inicio = 'Fecha Inicio' # Columna Q
     col_tiempo_meses = 'Tiempo en meses' # Columna T
 
     df = df.dropna(subset=[col_procesos])
-
-    # Aplicamos el formato de 1 decimal a la columna de complejidad
     df[col_complejidad] = df[col_complejidad].apply(extraer_complejidad)
     df['Color_Barra'] = df[col_complejidad].apply(asignar_color_barra)
-
-    # Normalización del avance (0.77 -> 77%)
     df[col_avance] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
-    # --- CÁLCULO DE FECHA DE TÉRMINO ---
-    # Convertimos a datetime
+    # CÁLCULO DE FECHA DE TÉRMINO
     df[col_fecha_inicio] = pd.to_datetime(df[col_fecha_inicio])
-    
-    # Estimación: Fecha Inicio + (Tiempo Meses * 30.44 días)
-    # Nota: No restamos el avance de la fecha de fin "teórica", ya que el fin del proyecto 
-    # es fijo según el tiempo de desarrollo, pero el avance indica qué tan cerca estamos.
     df['Fecha_Fin_Estimada'] = df.apply(
         lambda row: row[col_fecha_inicio] + timedelta(days=int(row[col_tiempo_meses] * 30.44)), 
         axis=1
@@ -79,11 +69,12 @@ try:
         en_curso = len(df[df[col_status].str.contains("curso", case=False, na=False)])
         m3.metric("Procesos en Curso", en_curso)
 
-    # --- NUEVA VISUALIZACIÓN: LÍNEA DE TIEMPO (GANTT) ---
+    # --- CRONOGRAMA CON LÍNEA DE DÍA ACTUAL ---
     st.divider()
     st.subheader("Cronograma Estimado de Procesos")
     
-    chart_timeline = alt.Chart(df).mark_bar(size=20).encode(
+    # 1. Las barras del cronograma
+    bars = alt.Chart(df).mark_bar(size=20).encode(
         x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
         x2='Fecha_Fin_Estimada:T',
         y=alt.Y(f'{col_procesos}:N', sort='x', title="Procesos"),
@@ -94,11 +85,36 @@ try:
             alt.Tooltip('Fecha_Fin_Estimada', title="Fin Proyectado"),
             alt.Tooltip(col_avance, title="Avance actual %")
         ]
-    ).properties(height=400).interactive()
+    )
+
+    # 2. La línea de "Hoy"
+    hoy = pd.to_datetime(datetime.now().date())
+    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(
+        color='red', 
+        strokeDash=[5, 5], 
+        size=2
+    ).encode(
+        x='hoy:T'
+    )
+
+    # 3. Etiqueta de texto para la línea de "Hoy"
+    texto_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy], 'label': ['HOY']})).mark_text(
+        align='left',
+        dx=5,
+        dy=-180, # Ajusta esto según la altura de tu gráfico
+        color='red',
+        fontWeight='bold'
+    ).encode(
+        x='hoy:T',
+        text='label'
+    )
+
+    # Combinar capas
+    chart_timeline = (bars + linea_hoy + texto_hoy).properties(height=400).interactive()
 
     st.altair_chart(chart_timeline, use_container_width=True)
 
-    # --- GRÁFICO INTERACTIVO ORIGINAL ---
+    # --- GRÁFICO DE AVANCE ---
     st.divider()
     st.subheader("Gráfico de Avance por Proceso - Granel")
 
@@ -109,8 +125,7 @@ try:
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
             alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
-            alt.Tooltip(col_avance, format='.0f', title="Avance %"),
-            alt.Tooltip(col_status, title="Estado")
+            alt.Tooltip(col_avance, format='.0f', title="Avance %")
         ]
     ).properties(height=450).interactive()
 
@@ -118,7 +133,6 @@ try:
 
     # --- TABLA DE DATOS ---
     st.subheader("Tabla de Datos de Procesos - Granel")
-
     st.data_editor(
         df[[col_procesos, col_complejidad, col_avance, col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
