@@ -103,7 +103,7 @@ try:
     ).properties(height=300).interactive()
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (ANCHO CORREGIDO) ---
+    # --- GRÁFICO 3: COMPARATIVA (BARRAS DELGADAS, LADO A LADO, ANCHO TOTAL) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -114,24 +114,28 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # SOLUCIÓN PARA ANCHO TOTAL:
-    # Agrupamos las barras en un solo eje X usando el nombre del proceso y el tipo de avance.
-    chart_agrupado = alt.Chart(df_melted).mark_bar().encode(
-        x=alt.X(f'{col_procesos}:N', title="Procesos", axis=alt.Axis(labelAngle=-45)),
+    # Usamos un gráfico facetado con anchos calculados para forzar el ancho total y barras delgadas
+    chart_agrupado = alt.Chart(df_melted).mark_bar(size=15).encode( # size=15 hace las barras más delgadas
+        x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        # Usamos el color para diferenciar y el orden para agruparlas juntas por proceso
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        detail='Tipo_Avance:N', # Mantiene la separación lógica
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        height=350
+        width=alt.Step(40), # Controla el espacio del grupo para que no se amontonen
+        height=300
+    ).facet(
+        column=alt.Column(f'{col_procesos}:N', title=None, header=alt.Header(labelOrient='bottom', labelAngle=-45)),
+        spacing=0 # Al ser 0, los grupos se distribuyen uniformemente
+    ).configure_view(
+        stroke=None
     )
 
-    # Al NO usar 'column' o 'facet', Streamlit puede estirar el gráfico al 100%
+    # Al usar 'facet', forzamos el ancho del contenedor en Streamlit
     st.altair_chart(chart_agrupado, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
+    # ... resto del código igual ...
     st.markdown("### Tabla de Datos")
     st.data_editor(
         df[[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base', col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
