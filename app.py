@@ -62,7 +62,7 @@ try:
 
     # --- GRÁFICO INTERACTIVO ---
     st.divider()
-    st.subheader("Gráfico Interactivo de Avance por Proceso")
+    st.subheader("Gráfico de Avance por Proceso - Granel")
     
     # Creamos el gráfico con Tooltip formateado a 1 decimal
     chart_bars = alt.Chart(df).mark_bar().encode(
