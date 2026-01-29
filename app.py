@@ -50,14 +50,12 @@ try:
     df[col_complejidad] = df[col_complejidad].apply(extraer_complejidad)
     df['Nivel_Complejidad'] = df[col_complejidad].apply(categorizar_complejidad)
     
-    # Normalización de fechas
     df[col_fecha_inicio] = pd.to_datetime(df[col_fecha_inicio])
     df['Fecha_Fin_Estimada'] = df.apply(
         lambda row: row[col_fecha_inicio] + timedelta(days=int(row[col_tiempo_meses] * 30.44)), 
         axis=1
     )
 
-    # --- CÁLCULOS DE AVANCE ---
     hoy = pd.to_datetime(datetime.now().date())
     df['Avance_Real'] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
 
@@ -105,7 +103,7 @@ try:
     ).properties(height=300).interactive()
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (Versión compatible con ancho ajustable) ---
+    # --- GRÁFICO 3: COMPARATIVA (ANCHO TOTAL - COMPATIBLE V4) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -116,23 +114,27 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Usamos facet para evitar el error de xOffset y permitir el ancho dinámico
+    # Para que ocupe todo el ancho sin usar xOffset (v5) ni Column (que rompe el ancho)
+    # Usamos el Proceso en el eje X y el Tipo_Avance para separar sutilmente las barras mediante color y orden
     chart_agrupado = alt.Chart(df_melted).mark_bar().encode(
+        # El secreto está en combinar el nombre del proceso con el tipo para que Altair los trate como items distintos en el eje X
         x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
+        # Usamos Facet pero con configuración de ancho para que se estire
+        column=alt.Column(f'{col_procesos}:N', title=None, header=alt.Header(labelOrient='bottom', labelAngle=-45)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        width=alt.Step(40), # Ancho de cada barra individual
+        # Calculamos un ancho dinámico aproximado basado en el número de procesos para forzar el ancho total
+        width=max(700 / len(df), 40), 
         height=300
-    ).facet(
-        column=alt.Column(f'{col_procesos}:N', title=None, header=alt.Header(labelOrient='bottom', labelAngle=-45, labelPadding=10)),
-        spacing=10 # Espacio entre grupos de barras
+    ).configure_facet(
+        spacing=5
     ).configure_view(
-        stroke=None # Elimina bordes internos para que parezca un solo gráfico ancho
+        stroke=None
     )
 
-    st.altair_chart(chart_agrupado)
+    st.altair_chart(chart_agrupado, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
