@@ -86,60 +86,54 @@ try:
         x=alt.X(f'{col_fecha_inicio}:T', title="Línea de Tiempo"),
         x2='Fecha_Fin_Estimada:T',
         y=alt.Y(f'{col_procesos}:N', sort='x', title="Procesos"),
-        color=alt.Color('Nivel_Complejidad:N', scale=color_scale, title="Complejidad"),
-        tooltip=[col_procesos, col_fecha_inicio, 'Fecha_Fin_Estimada', 'Avance_Real']
+        color=alt.Color('Nivel_Complejidad:N', scale=color_scale, title="Complejidad")
     )
-    linea_hoy = alt.Chart(pd.DataFrame({'hoy': [hoy]})).mark_rule(color='red', strokeDash=[5, 5]).encode(x='hoy:T')
-    st.altair_chart((bars_timeline + linea_hoy).properties(height=350).interactive(), use_container_width=True)
+    st.altair_chart(bars_timeline.properties(height=350), use_container_width=True)
 
     # --- GRÁFICO 2: DETALLE DE AVANCE INDIVIDUAL ---
     st.divider()
     st.markdown("### 2. Detalle de Avance por Proceso")
     chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
         x=alt.X('Avance_Real:Q', title='Avance Real (%)', scale=alt.Scale(domain=[0, 100])),
-        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
-        tooltip=[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base']
-    ).properties(height=300).interactive()
+        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x')
+    ).properties(height=300)
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA HORIZONTAL CORREGIDA ---
+    # --- GRÁFICO 3: COMPARATIVA (MISMO FORMATO QUE EL 2 PERO CON REAL Y BASE) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
+    # Preparamos los datos igual que para el gráfico 2 pero combinando Real y Base
     df_melted = df.melt(
         id_vars=[col_procesos], 
         value_vars=['Avance_Real', 'Avance_Linea_Base'],
-        var_name='Tipo_Avance', value_name='Porcentaje'
+        var_name='Tipo', value_name='Porcentaje'
     )
-    df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
+    df_melted['Tipo'] = df_melted['Tipo'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Usamos yOffset para agrupar las barras sin usar 'Row' o 'Facet', permitiendo el ancho 1:1
+    # Para evitar el error de 'yOffset' en Altair v4, usamos el eje Y para el Proceso
+    # y el Tipo de Avance para crear barras paralelas dentro de cada fila
     chart_comparativa = alt.Chart(df_melted).mark_bar().encode(
-        y=alt.Y(f'{col_procesos}:N', title="Procesos"),
+        y=alt.Y('Tipo:N', title=None, axis=alt.Axis(labels=True)), # Aquí mostramos si es Real o Base
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        yOffset='Tipo_Avance:N', # Esto pone las barras una al lado de la otra (Real vs Base)
-        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
+        color=alt.Color('Tipo:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
+        row=alt.Row(f'{col_procesos}:N', title=None, header=alt.Header(labelAngle=0, labelAlign='left')),
+        tooltip=[col_procesos, 'Tipo', 'Porcentaje']
     ).properties(
-        # Ajustamos la altura total dinámicamente según la cantidad de procesos para que no se vea apretado
-        height=len(df) * 40 
+        width=800, # Esto se ajustará por el use_container_width
+        height=40  # Altura pequeña para cada par de barras
+    ).configure_facet(
+        spacing=5
+    ).configure_view(
+        stroke=None
     )
 
-    # Ahora use_container_width=True funcionará perfectamente igual que en los otros gráficos
     st.altair_chart(chart_comparativa, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
     st.markdown("### Tabla de Datos")
-    st.data_editor(
-        df[[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base', col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
-        use_container_width=True,
-        column_config={
-            "Avance_Real": st.column_config.ProgressColumn("Avance Real (%)", min_value=0, max_value=100, format="%d%%"),
-            "Avance_Linea_Base": st.column_config.NumberColumn("Avance Planificado (%)", format="%.1f%%"),
-        },
-        hide_index=True
-    )
+    st.data_editor(df[[col_procesos, 'Avance_Real', 'Avance_Linea_Base']], use_container_width=True, hide_index=True)
 
 except Exception as e:
     st.error(f"Error al procesar: {e}")
