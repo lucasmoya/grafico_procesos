@@ -102,14 +102,17 @@ try:
     st.divider()
     st.markdown("### 2. Detalle de Avance por Proceso")
     chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
-        x=alt.X('Avance_Real:Q', title='Avance Real (%)', scale=alt.Scale(domain=[0, 100])),
+        x=alt.X('Avance_Real:Q', 
+                title='Avance Real (%)', 
+                scale=alt.Scale(domain=[0, 100]),
+                axis=alt.Axis(values=list(range(0, 101, 5)))), # Escala de 5 en 5
         y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x', axis=alt.Axis(labelLimit=100)),
         tooltip=[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base']
     ).properties(height=300).interactive()
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (BARRAS SEPARADAS Y TEXTO TRUNCADO) ---
+    # --- GRÁFICO 3: COMPARATIVA (MISMO TAMAÑO Y ESCALA DE 5 EN 5) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -121,17 +124,20 @@ try:
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
     chart_comparativo = alt.Chart(df_melted).mark_bar(size=14).encode(
-        x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
+        x=alt.X('Porcentaje:Q', 
+                title="Cumplimiento (%)", 
+                scale=alt.Scale(domain=[0, 100]),
+                axis=alt.Axis(values=list(range(0, 101, 5)))), # Escala de 5 en 5 corregida
         y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         color=alt.Color('Tipo_Avance:N', 
                         scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
-                        title="Referencia"),
+                        legend=None), 
         row=alt.Row(f'{col_procesos}:N', 
                     title=None, 
-                    # El labelLimit=100 es lo que corta el texto con "..."
                     header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=10, labelLimit=100)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
+        width='container', # Forzar que use el ancho del contenedor de Streamlit
         height=40
     ).configure_facet(
         spacing=5
