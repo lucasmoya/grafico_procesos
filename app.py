@@ -103,13 +103,13 @@ try:
     st.markdown("### 2. Detalle de Avance por Proceso")
     chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
         x=alt.X('Avance_Real:Q', title='Avance Real (%)', scale=alt.Scale(domain=[0, 100])),
-        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
+        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x', axis=alt.Axis(labelLimit=100)),
         tooltip=[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base']
     ).properties(height=300).interactive()
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (BORRANDO ETIQUETAS REPETIDAS) ---
+    # --- GRÁFICO 3: COMPARATIVA (BARRAS SEPARADAS Y TEXTO TRUNCADO) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,21 +120,19 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Esta configuración elimina "Real" y "Línea Base" del eje Y para que quede limpio como el gráfico 2
     chart_comparativo = alt.Chart(df_melted).mark_bar(size=14).encode(
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        # Usamos dos niveles en Y pero ocultamos las etiquetas del segundo nivel
         y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         color=alt.Color('Tipo_Avance:N', 
                         scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
                         title="Referencia"),
         row=alt.Row(f'{col_procesos}:N', 
                     title=None, 
-                    sort=alt.EncodingSortField(field='Porcentaje', op='mean', order='descending'),
-                    header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=10)),
+                    # El labelLimit=100 es lo que corta el texto con "..."
+                    header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=10, labelLimit=100)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        height=40  # Altura de cada bloque de proceso
+        height=40
     ).configure_facet(
         spacing=5
     ).configure_view(
