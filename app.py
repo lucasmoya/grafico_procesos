@@ -109,7 +109,7 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (MISMO ANCHO QUE GRÁFICO 2) ---
+    # --- GRÁFICO 3: COMPARATIVA (BORRANDO ETIQUETAS REPETIDAS) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -120,21 +120,23 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # Usamos Row para separar procesos, pero eliminamos el ancho extra del Header
-    chart_comparativo = alt.Chart(df_melted).mark_bar(size=15).encode(
+    # Esta configuración elimina "Real" y "Línea Base" del eje Y para que quede limpio como el gráfico 2
+    chart_comparativo = alt.Chart(df_melted).mark_bar(size=14).encode(
         x=alt.X('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=True, ticks=False)),
+        # Usamos dos niveles en Y pero ocultamos las etiquetas del segundo nivel
+        y=alt.Y('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         color=alt.Color('Tipo_Avance:N', 
                         scale=alt.Scale(domain=['Real', 'Línea Base'], range=['#5276A7', '#F4A582']), 
                         title="Referencia"),
         row=alt.Row(f'{col_procesos}:N', 
                     title=None, 
-                    header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=0)),
+                    sort=alt.EncodingSortField(field='Porcentaje', op='mean', order='descending'),
+                    header=alt.Header(labelAngle=0, labelAlign='left', labelPadding=10)),
         tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        height=40  # Altura de cada par de barras
+        height=40  # Altura de cada bloque de proceso
     ).configure_facet(
-        spacing=10
+        spacing=5
     ).configure_view(
         stroke=None
     )
