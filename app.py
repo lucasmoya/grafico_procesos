@@ -103,7 +103,7 @@ try:
     ).properties(height=300).interactive()
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- GRÁFICO 3: COMPARATIVA (BARRAS AGRUPADAS - ANCHO TOTAL REAL) ---
+    # --- GRÁFICO 3: COMPARATIVA (BARRAS LADO A LADO Y ANCHO COMPLETO) ---
     st.divider()
     st.markdown("### 3. Comparativa: Avance Real vs Línea Base (Planificado)")
     
@@ -114,39 +114,29 @@ try:
     )
     df_melted['Tipo_Avance'] = df_melted['Tipo_Avance'].replace({'Avance_Real': 'Real', 'Avance_Linea_Base': 'Línea Base'})
 
-    # TÉCNICA PARA ANCHO COMPLETO: Usar un eje X compuesto
-    # Eliminamos 'column' y usamos X para el proceso + color para la barra
-    chart_comparativo = alt.Chart(df_melted).mark_bar().encode(
-        # Agrupamos por proceso en el eje X
-        x=alt.X(f'{col_procesos}:N', title="Procesos", axis=alt.Axis(labelAngle=-45)),
-        # La magia: 'xOffset' emulado mediante el canal 'detail' o 'column' suele fallar en ancho, 
-        # así que usamos la propiedad de "band" si el modelo fuera nuevo, 
-        # pero para asegurar ANCHO TOTAL, volvemos a una configuración simple sin facetas:
-        y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
-        # Esto separa las barras una al lado de la otra dentro de la misma categoría de X
-        xOffset='Tipo_Avance:N' 
-    ).properties(
-        height=350
-    ).configure_mark(
-        # Ajustamos el grosor para que se vean "delgadas"
-        thickness=15
-    )
-
-    # NOTA: Si xOffset sigue dando error en tu servidor, esta es la alternativa infalible 
-    # que SI ocupa el ancho total:
-    chart_final = alt.Chart(df_melted).mark_bar(size=12).encode(
+    # Truco para ancho total: Usamos X para el Proceso y una codificación secundaria para las barras
+    # Como tu versión no soporta xOffset, usamos una técnica de concatenación para el eje X
+    chart_agrupado = alt.Chart(df_melted).mark_bar(size=12).encode(
         x=alt.X('Tipo_Avance:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
         y=alt.Y('Porcentaje:Q', title="Cumplimiento (%)", scale=alt.Scale(domain=[0, 100])),
-        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582'])),
-        column=alt.Column(f'{col_procesos}:N', header=alt.Header(labelOrient='bottom', labelAngle=-45), spacing=5, title=None)
+        color=alt.Color('Tipo_Avance:N', scale=alt.Scale(range=['#5276A7', '#F4A582']), title="Referencia"),
+        column=alt.Column(f'{col_procesos}:N', 
+                         title=None, 
+                         header=alt.Header(labelOrient='bottom', labelAngle=-45, labelPadding=10),
+                         spacing=10 # Espacio entre los pares de barras
+        ),
+        tooltip=[col_procesos, 'Tipo_Avance', 'Porcentaje']
     ).properties(
-        width=alt.Step(40), # Esto hace que el gráfico crezca con los datos
+        width=alt.Step(40), # Esto asegura que el gráfico crezca horizontalmente
         height=300
-    ).configure_view(stroke=None)
+    ).configure_view(
+        stroke=None
+    ).configure_facet(
+        spacing=0
+    )
 
-    # Para asegurar que se vea GRANDE, lo envolvemos en un container de Streamlit
-    st.altair_chart(chart_final, use_container_width=False) # Con facet, False + Step es más estable
+    # Forzamos a Streamlit a estirarlo si es posible, aunque con 'column' el 'Step' manda.
+    st.altair_chart(chart_agrupado)
 
     # --- TABLA DE DATOS ---
     st.divider()
@@ -154,6 +144,12 @@ try:
     st.data_editor(
         df[[col_procesos, col_complejidad, 'Avance_Real', 'Avance_Linea_Base', col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
+        column_config={
+            "Avance_Real": st.column_config.ProgressColumn("Avance Real (%)", min_value=0, max_value=100, format="%d%%"),
+            "Avance_Linea_Base": st.column_config.NumberColumn("Avance Planificado (%)", format="%.1f%%"),
+            col_fecha_inicio: st.column_config.DateColumn("Inicio"),
+            "Fecha_Fin_Estimada": st.column_config.DateColumn("Fin Est.")
+        },
         hide_index=True
     )
 
