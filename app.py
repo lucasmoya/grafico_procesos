@@ -164,6 +164,7 @@ try:
     })
 
     if HAS_PLOTLY:
+        procesos_unicos = df[col_procesos].unique().tolist()
         # Usa Plotly si está disponible (barras agrupadas side-by-side)
         fig = px.bar(
             df_compare,
@@ -180,18 +181,20 @@ try:
 
         fig.update_layout(
             yaxis=dict(range=[0, 100]),
-            xaxis_tickangle=-45,
             legend_title_text='Tipo',
             template='plotly_dark',
-            height=400
+            height=400,
+            xaxis=dict(tickangle=-45, automargin=True)
         )
+        # Asegurar que sólo se muestre el nombre del proceso una vez por grupo
+        fig.update_xaxes(tickmode='array', tickvals=procesos_unicos, ticktext=procesos_unicos)
 
         st.plotly_chart(fig, use_container_width=True)
     else:
         # Fallback a Altair sin depender de xOffset: usar faceting (cada proceso es una columna)
-        # Esto muestra barras "lado a lado" por proceso (pequeños múltiplos) y evita importar plotly.
+        # Quitar etiquetas de x (Avance Real / Avance Planificado) para dejar solo el nombre del proceso en el header
         chart_alt = alt.Chart(df_compare).mark_bar().encode(
-            x=alt.X('Tipo:N', title=None),
+            x=alt.X('Tipo:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
             y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
             color=alt.Color('Tipo:N',
                             scale=alt.Scale(
