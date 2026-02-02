@@ -157,17 +157,16 @@ try:
         'Avance_Esperado': 'Avance Planificado'
     })
 
-    # Gráfico de barras agrupadas por proceso (proceso en el eje X), con leyenda y ocupando todo el ancho
+    # Gráfico de barras por proceso (evitar xOffset que no está soportado en esta versión)
     chart_compare = alt.Chart(df_compare).mark_bar().encode(
         x=alt.X(f'{col_procesos}:N', title=None, axis=alt.Axis(labelAngle=-45)),
-        y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
+        y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)', stack=None),
         color=alt.Color('Tipo:N',
                         scale=alt.Scale(
                             domain=['Avance Real', 'Avance Planificado'],
                             range=['#5276A7', '#B0B0B0']
                         ),
                         title='Tipo'),
-        xOffset='Tipo:N',
         tooltip=[col_procesos, 'Tipo', 'Avance']
     ).properties(
         height=300
