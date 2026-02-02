@@ -120,7 +120,7 @@ try:
 
 # --- TERCER GRÁFICO: AVANCE REAL VS. AVANCE ESPERADO (TEÓRICO) ---
     st.divider()
-    st.markdown("### Comparativa: Avance Real vs. Avance Esperado a la Fecha")
+    st.markdown("Comparativa: Avance Real vs. Avance Esperado a la Fecha")
 
     # 1. Cálculo del Avance Esperado (Teórico) basado en el tiempo
     hoy_dt = pd.to_datetime(datetime.now().date())
