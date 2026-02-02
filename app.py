@@ -145,98 +145,77 @@ try:
     st.altair_chart(chart_avance, use_container_width=True)
 
     # ---------------------------------
-    # Real vs Línea Base (CORREGIDO - barras horizontales agrupadas)
+    # Real vs Línea Base (AGRUPADO - estética igual a "Avance por Proceso")
     # ---------------------------------
     st.divider()
     st.markdown("Avance Real vs Línea Base")
 
+    # Preparar datos
     df_compare = df.melt(
         id_vars=[col_procesos],
         value_vars=[col_avance, 'Avance_Esperado'],
         var_name='Tipo',
         value_name='Avance'
     )
-
-    # Renombrar para que la leyenda muestre "Avance Real" y "Avance Planificado"
     df_compare['Tipo'] = df_compare['Tipo'].replace({
         col_avance: 'Avance Real',
         'Avance_Esperado': 'Avance Planificado'
     })
 
     if HAS_PLOTLY:
-        # Usar Plotly Graph Objects para barras horizontales agrupadas (side-by-side)
         import plotly.graph_objects as go
 
-        procesos_unicos = df[col_procesos].tolist()
+        procesos_unicos = df[col_procesos].astype(str).tolist()
         real_vals = df[col_avance].tolist()
         plan_vals = df['Avance_Esperado'].tolist()
-
-        # crear posiciones numéricas y desplazar ligeramente para tener dos barras por fila (side-by-side)
-        idx = list(range(len(procesos_unicos)))
-        offset = 0.18
-        y_real = [i - offset for i in idx]
-        y_plan = [i + offset for i in idx]
 
         fig = go.Figure(
             data=[
                 go.Bar(
                     x=real_vals,
-                    y=y_real,
+                    y=procesos_unicos,
                     name='Avance Real',
                     orientation='h',
                     marker_color='#5276A7',
-                    hovertemplate='%{text}: %{x}%<extra></extra>',
-                    text=procesos_unicos,
-                    width=0.34
+                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
                 ),
                 go.Bar(
                     x=plan_vals,
-                    y=y_plan,
+                    y=procesos_unicos,
                     name='Avance Planificado',
                     orientation='h',
                     marker_color='#B0B0B0',
-                    hovertemplate='%{text}: %{x}%<extra></extra>',
-                    text=procesos_unicos,
-                    width=0.34
+                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
                 )
             ]
         )
 
         fig.update_layout(
-            barmode='overlay',        # overlay porque desplazamos manualmente las y
+            barmode='group',               # side-by-side por categoría
             bargap=0.25,
-            xaxis=dict(range=[0, 110], dtick=10, title='Avance (%)', showgrid=True),  # extender fondo hasta 110%
-            yaxis=dict(
-                tickmode='array',
-                tickvals=idx,
-                ticktext=procesos_unicos,
-                autorange='reversed',
-                title='Proceso'
-            ),
-            legend_title_text='Tipo',
+            xaxis=dict(range=[0, 110], dtick=10, title='Avance (%)', showgrid=True, gridcolor='rgba(255,255,255,0.06)'),
+            yaxis=dict(autorange='reversed', title='Proceso', automargin=True),
             template='plotly_dark',
-            height=420,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            height=350,
             margin=dict(l=300, r=40, t=60, b=60),
-            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+            legend_title_text='Tipo'
         )
 
         st.plotly_chart(fig, use_container_width=True)
     else:
-        # Fallback a Altair: barras horizontales (si xOffset no está disponible esto producirá barras apiladas,
-        # pero los procesos quedarán en el eje Y y el gráfico ocupará todo el ancho)
-        chart_alt = alt.Chart(df_compare).mark_bar().encode(
+        # Fallback Altair: mantener estética similar (horizontal) — mostrará dos barras por proceso (agrupadas por color)
+        chart_alt = alt.Chart(df_compare).mark_bar(size=18).encode(
             x=alt.X('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
             y=alt.Y(f'{col_procesos}:N', sort='-x', title='Proceso'),
             color=alt.Color('Tipo:N',
-                            scale=alt.Scale(
-                                domain=['Avance Real', 'Avance Planificado'],
-                                range=['#5276A7', '#B0B0B0']
-                            ),
+                            scale=alt.Scale(domain=['Avance Real', 'Avance Planificado'],
+                                            range=['#5276A7', '#B0B0B0']),
                             title='Tipo'),
             tooltip=[col_procesos, 'Tipo', 'Avance']
-        ).properties(
-            height=400
-        )
+        ).properties(height=350)
 
         st.altair_chart(chart_alt, use_container_width=True)
 
