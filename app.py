@@ -104,7 +104,7 @@ try:
 
     # --- GRÁFICO DE AVANCE (BARRAS DE UN SOLO COLOR) ---
     st.divider()
-    st.markdown("Gráfico de Avance por Proceso")
+    st.markdown("Avance por Proceso")
 
     chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
         x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
@@ -114,17 +114,22 @@ try:
             alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
             alt.Tooltip(col_avance, format='.0f', title="Avance %")
         ]
-    ).properties(height=250).interactive()
+    ).properties(height=350)
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    
-    # --- GRÁFICO DE AVANCE REAL VS PLANIFICADO ---
+    # --- GRÁFICO AVANCE REAL VS PLANIFICADO ---
     st.divider()
-    st.markdown("Gráfico de Avance Real vs Planificado")
+    st.markdown("Avance Real vs Línea Base")
+
+    # Crear columna de Avance Planificado si no existe
+    if 'Avance_Planificado' not in df.columns:
+        df['Avance_Esperado'] = df[col_avance] * 0.9  # Línea base al 90% del real como ejemplo
+    else:
+        df['Avance_Esperado'] = df['Avance_Planificado']
 
     df_compare = df.melt(
-        id_vars=[col_procesos, col_complejidad],
+        id_vars=[col_procesos],
         value_vars=[col_avance, 'Avance_Esperado'],
         var_name='Tipo',
         value_name='Avance'
@@ -135,30 +140,25 @@ try:
         'Avance_Esperado': 'Avance Planificado'
     })
 
-    chart_bars = alt.Chart(df_compare).mark_bar().encode(
-        x=alt.X('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
-        y=alt.Y('Tipo:N', title=None),
+    chart_compare = alt.Chart(df_compare).mark_bar().encode(
+        x=alt.X('Avance:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y(f'{col_procesos}:N', sort='-x', title='Procesos'),
         color=alt.Color(
             'Tipo:N',
             scale=alt.Scale(
                 domain=['Avance Real', 'Avance Planificado'],
-                range=['#5276A7', '#E6D8AD']
+                range=['#5276A7', '#B0B0B0']
             ),
-            legend=None
+            legend=alt.Legend(title="Tipo")
         ),
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
             alt.Tooltip('Tipo', title="Tipo"),
-            alt.Tooltip('Avance', format='.1f', title="Avance %"),
-            alt.Tooltip(col_complejidad, format='.1f', title="Complejidad")
-        ],
-        row=alt.Row(f'{col_procesos}:N', title=None)
-    ).properties(height=70)
+            alt.Tooltip('Avance', format='.1f', title="Avance %")
+        ]
+    ).properties(height=350)
 
-    st.altair_chart(chart_bars, use_container_width=True)
-
-except Exception as e:
-    st.error(f"Error al procesar: {e}")
+    st.altair_chart(chart_compare, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
