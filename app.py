@@ -164,31 +164,43 @@ try:
     })
 
     if HAS_PLOTLY:
-        # Usar Plotly Express para barras horizontales agrupadas (side-by-side)
-        procesos_unicos = df[col_procesos].tolist()
+        # Usar Plotly Graph Objects para barras horizontales agrupadas (side-by-side, no apiladas)
+        import plotly.graph_objects as go
 
-        fig = px.bar(
-            df_compare,
-            x='Avance',
-            y=col_procesos,
-            color='Tipo',
-            orientation='h',
-            barmode='group',
-            category_orders={col_procesos: procesos_unicos[::-1]},  # mantener orden y mostrar primero arriba
-            color_discrete_map={
-                'Avance Real': '#5276A7',
-                'Avance Planificado': '#B0B0B0'
-            },
-            labels={'Avance': 'Avance (%)', col_procesos: 'Proceso', 'Tipo': 'Tipo'}
+        procesos_unicos = df[col_procesos].tolist()
+        real_vals = df[col_avance].tolist()
+        plan_vals = df['Avance_Esperado'].tolist()
+
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    x=real_vals,
+                    y=procesos_unicos,
+                    name='Avance Real',
+                    orientation='h',
+                    marker_color='#5276A7',
+                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
+                ),
+                go.Bar(
+                    x=plan_vals,
+                    y=procesos_unicos,
+                    name='Avance Planificado',
+                    orientation='h',
+                    marker_color='#B0B0B0',
+                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
+                )
+            ]
         )
 
         fig.update_layout(
+            barmode='group',
+            bargap=0.25,
             xaxis=dict(range=[0, 100], dtick=10, title='Avance (%)', showgrid=True),
-            yaxis=dict(title='Proceso', automargin=True),
+            yaxis=dict(autorange='reversed', title='Proceso', automargin=True),
             legend_title_text='Tipo',
             template='plotly_dark',
             height=420,
-            margin=dict(l=260, r=120, t=60, b=60),
+            margin=dict(l=260, r=40, t=60, b=60),
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
         )
 
