@@ -62,46 +62,58 @@ try:
     )
 
     # --- KPIs SUPERIORES ---
-# --- KPIs SUPERIORES POTENCIADOS ---
     st.divider()
-    
-    # Cálculos para nuevos KPIs
-    # 1. Índice de Salud (SPI): Relación Avance Real vs Esperado
-    # Evitamos división por cero con clip
-    df['SPI'] = df[col_avance] / df['Avance_Esperado'].replace(0, 1)
-    salud_global = df['SPI'].mean()
-    
-    # 2. Procesos Críticos: Complejidad Alta (>7) con poco avance (<30%)
-    criticos = len(df[(df[col_complejidad] >= 7) & (df[col_avance] < 30)])
-    
-    # 3. Cuello de Botella (Etapa con más procesos en curso)
-    # Buscamos la columna con más registros que no sea 'Listo' entre los hitos
-    hitos = ['Levantar información', 'Armar diagrama', 'Validar diagrama', 'Mejorar proceso', 'Validar mejora', 'Implementación']
-    etapas_activas = df[hitos].apply(lambda x: x.str.contains('curso|proceso', case=False, na=False)).sum()
-    etapa_critica = etapas_activas.idxmax() if etapas_activas.max() > 0 else "N/A"
-
-    # Renderizado en Streamlit
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
-    
+    m1, m2, m3 = st.columns(3)
     m1.metric("Avance Promedio", f"{df[col_avance].mean():.1f}%")
-    m2.metric("Total Procesos", len(df))
-    
-    # KPI 3: Salud del Cronograma (Basado en el gráfico de cumplimiento)
-    color_salud = "normal" if salud_global >= 0.9 else "inverse"
-    m3.metric("Índice de Salud", f"{salud_global:.2f}", 
-              delta=f"{'En Tiempo' if salud_global >= 1 else 'Retraso'}", 
-              delta_color=color_salud)
-    
-    # KPI 4: Alerta de Riesgo (Complejidad vs Avance)
-    m4.metric("Riesgo Crítico", f"{criticos} Proc.", help="Procesos de alta complejidad con avance menor al 30%")
-    
-    # KPI 5: Cuello de Botella
-    m5.metric("Punto Crítico", etapa_critica, help="Etapa del flujo con más procesos acumulados actualmente")
-    
-    # KPI 6: Procesos en Curso (Tu métrica original)
+    m2.metric("Total de Procesos", len(df))
     if col_status in df.columns:
         en_curso = len(df[df[col_status].str.contains("curso", case=False, na=False)])
-        m6.metric("En Curso", en_curso)
+        m3.metric("Procesos en Curso", en_curso)
+
+        # --- PROCESAMIENTO ADICIONAL PARA KPIs ---
+    hoy_dt = pd.to_datetime(datetime.now().date())
+    
+    def calcular_avance_esperado(row):
+        dias_totales = row[col_tiempo_meses] * 30.44
+        if dias_totales <= 0: return 0.0
+        dias_transcurridos = (hoy_dt - row[col_fecha_inicio]).days
+        return max(0.0, min(100.0, (dias_transcurridos / dias_totales) * 100))
+
+    df['Avance_Esperado'] = df.apply(calcular_avance_esperado, axis=1)
+    
+    # 1. Eficiencia: Cuántos procesos tienen avance real >= esperado
+    al_dia = len(df[df[col_avance] >= df['Avance_Esperado']])
+    eficiencia_plazos = (al_dia / len(df)) * 100 if len(df) > 0 else 0
+    
+    # 2. Procesos Críticos: Alta complejidad y bajo avance
+    criticos = len(df[(df[col_complejidad] >= 7) & (df[col_avance] < 20)])
+
+    # --- KPIs SUPERIORES (6 MÉTRICAS) ---
+    st.divider()
+    
+    # Primera Fila: Volumen y Avance
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1.metric("Total de Procesos", len(df))
+    kpi2.metric("Avance Promedio", f"{df[col_avance].mean():.1f}%")
+    
+    if col_status in df.columns:
+        en_curso = len(df[df[col_status].str.contains("curso", case=False, na=False)])
+        kpi3.metric("Procesos en Curso", en_curso)
+
+    # Segunda Fila: Salud PMO y Riesgo
+    kpi4, kpi5, kpi6 = st.columns(3)
+    
+    # KPI 4: Salud del Cronograma (SPI simplificado)
+    kpi4.metric("Eficiencia de Plazos", f"{eficiencia_plazos:.1f}%", 
+               help="Porcentaje de procesos cuyo avance real es igual o superior al esperado por fecha.")
+    
+    # KPI 5: Carga Total de Trabajo (Suma de complejidad)
+    kpi5.metric("Complejidad Total", f"{df[col_complejidad].sum():.0f} pts",
+               help="Suma de los puntos de complejidad de todos los procesos activos.")
+    
+    # KPI 6: Alerta de Riesgo
+    kpi6.metric("Riesgos Críticos", criticos, delta_color="inverse",
+               help="Procesos de Alta Complejidad (>=7) con menos del 20% de avance.")
 
     # --- CRONOGRAMA (CON LEYENDA DE COMPLEJIDAD) ---
     st.divider()
