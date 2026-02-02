@@ -123,7 +123,7 @@ try:
 
     st.altair_chart(chart_avance, use_container_width=True)
 
-    # ---------------- 🔥 PLANIFICADO VS REAL (BARRAS AGRUPADAS) ----------------
+    # ---------------- 🔥 PLANIFICADO VS REAL (BARRAS AGRUPADAS - ALTAIR V4) ----------------
     st.divider()
     st.markdown("### Avance Planificado vs Avance Real")
 
@@ -140,12 +140,7 @@ try:
     })
 
     chart_plan_real = alt.Chart(df_comp).mark_bar().encode(
-        x=alt.X(
-            f"{col_procesos}:N",
-            title="Proceso",
-            axis=alt.Axis(labelAngle=-45)
-        ),
-        xOffset="Tipo:N",
+        x=alt.X("Tipo:N", title="Tipo de Avance"),
         y=alt.Y("Avance:Q", title="Avance (%)", scale=alt.Scale(domain=[0, 100])),
         color=alt.Color(
             "Tipo:N",
@@ -153,14 +148,19 @@ try:
                 domain=["Planificado", "Real"],
                 range=["#4CAF50", "#FF7043"]
             ),
-            title="Tipo de Avance"
+            legend=None
+        ),
+        column=alt.Column(
+            f"{col_procesos}:N",
+            title="Proceso",
+            header=alt.Header(labelAngle=-45)
         ),
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
             alt.Tooltip("Tipo", title="Tipo"),
             alt.Tooltip("Avance", format=".1f", title="Avance (%)")
         ]
-    ).properties(height=350)
+    ).properties(height=300)
 
     st.altair_chart(chart_plan_real, use_container_width=True)
 
