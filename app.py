@@ -114,7 +114,24 @@ try:
             alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
             alt.Tooltip(col_avance, format='.0f', title="Avance %")
         ]
-    ).properties(height=300).interactive()
+    ).properties(height=250).interactive()
+
+    st.altair_chart(chart_bars, use_container_width=True)
+
+    
+    # --- GRÁFICO DE AVANCE (BARRAS DE UN SOLO COLOR) ---
+    st.divider()
+    st.markdown("Gráfico de Avance por Proceso")
+
+    chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
+        x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
+        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
+        tooltip=[
+            alt.Tooltip(col_procesos, title="Proceso"),
+            alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
+            alt.Tooltip(col_avance, format='.0f', title="Avance %")
+        ]
+    ).properties(height=250).interactive()
 
     st.altair_chart(chart_bars, use_container_width=True)
 
