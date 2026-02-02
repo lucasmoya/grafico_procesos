@@ -159,7 +159,7 @@ try:
     # 3. Gráfico de barras agrupadas (Compatibilidad V4)
     chart_cumplimiento = alt.Chart(df_comp_fecha).mark_bar().encode(
         y=alt.Y('Metrica:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
-        x=alt.X('Porcentaje:Q', title='Porcentaje (%)', scale=alt.Scale(domain=[0, 100], axis=alt.Axis(tickCount=5))),
+        x=alt.X('Porcentaje:Q', title='Porcentaje (%)', scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Metrica:N', 
                         scale=alt.Scale(domain=['Avance Real (%)', 'Avance Esperado (%)'],
                                         range=['#5276A7', '#E67E22']),
@@ -172,7 +172,7 @@ try:
         ]
     ).properties(
         height=50,
-        width='container'
+        width='container'-50
     ).facet(
         row=alt.Row(
             f'{col_procesos}:N', 
