@@ -151,40 +151,29 @@ try:
         value_name='Avance'
     )
 
+    # Renombrar para que la leyenda muestre "Avance Real" y "Avance Planificado"
     df_compare['Tipo'] = df_compare['Tipo'].replace({
         col_avance: 'Avance Real',
-        'Avance_Esperado': 'Avance Esperado'
+        'Avance_Esperado': 'Avance Planificado'
     })
 
-    chart_compare = alt.Chart(df_compare).mark_bar(
-        size=18
-    ).encode(
-        x=alt.X('Tipo:N', title=None),
-        y=alt.Y(
-            'Avance:Q',
-            scale=alt.Scale(domain=[0, 100]),
-            title='Avance (%)'
-        ),
-        color=alt.Color(
-            'Tipo:N',
-            scale=alt.Scale(
-                domain=['Avance Real', 'Avance Esperado'],
-                range=['#5276A7', '#B0B0B0']
-            ),
-            legend=None
-        ),
-        tooltip=[col_procesos, 'Tipo', 'Avance'],
-        column=alt.Column(
-            f'{col_procesos}:N',
-            title=None,
-            header=alt.Header(labelAngle=0)
-        )
+    # Gráfico de barras agrupadas por proceso (proceso en el eje X), con leyenda y ocupando todo el ancho
+    chart_compare = alt.Chart(df_compare).mark_bar().encode(
+        x=alt.X(f'{col_procesos}:N', title=None, axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
+        color=alt.Color('Tipo:N',
+                        scale=alt.Scale(
+                            domain=['Avance Real', 'Avance Planificado'],
+                            range=['#5276A7', '#B0B0B0']
+                        ),
+                        title='Tipo'),
+        xOffset='Tipo:N',
+        tooltip=[col_procesos, 'Tipo', 'Avance']
     ).properties(
-        height=260,
-        width=90
+        height=300
     )
 
-    st.altair_chart(chart_compare, use_container_width=False)
+    st.altair_chart(chart_compare, use_container_width=True)
 
     # ---------------------------------
     # Tabla
