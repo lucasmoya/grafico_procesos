@@ -172,7 +172,7 @@ try:
         ]
     ).properties(
         height=50,
-        width=900
+        width=950
     ).facet(
         row=alt.Row(
             f'{col_procesos}:N', 
