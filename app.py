@@ -33,7 +33,7 @@ else:
         st.stop()
 
 # ---------------------------------
-# Funciones auxiliares
+# Funciones auxiliaresgit 
 # ---------------------------------
 def extraer_complejidad(valor):
     try:
@@ -164,28 +164,31 @@ try:
     })
 
     if HAS_PLOTLY:
-        # Construir dos series por proceso para asegurar un solo tick por proceso
+        # Usar Plotly Express para barras horizontales agrupadas (side-by-side)
         procesos_unicos = df[col_procesos].tolist()
-        real_vals = [df.loc[df[col_procesos] == p, col_avance].iloc[0] for p in procesos_unicos]
-        plan_vals = [df.loc[df[col_procesos] == p, 'Avance_Esperado'].iloc[0] for p in procesos_unicos]
 
-        import plotly.graph_objects as go
-
-        fig = go.Figure(
-            data=[
-                go.Bar(name='Avance Real', y=procesos_unicos, x=real_vals, orientation='h', marker_color='#5276A7'),
-                go.Bar(name='Avance Planificado', y=procesos_unicos, x=plan_vals, orientation='h', marker_color='#B0B0B0')
-            ]
+        fig = px.bar(
+            df_compare,
+            x='Avance',
+            y=col_procesos,
+            color='Tipo',
+            orientation='h',
+            barmode='group',
+            category_orders={col_procesos: procesos_unicos[::-1]},  # mantener orden y mostrar primero arriba
+            color_discrete_map={
+                'Avance Real': '#5276A7',
+                'Avance Planificado': '#B0B0B0'
+            },
+            labels={'Avance': 'Avance (%)', col_procesos: 'Proceso', 'Tipo': 'Tipo'}
         )
 
         fig.update_layout(
-            barmode='group',
-            xaxis=dict(range=[0, 100], title='Avance (%)'),
-            yaxis=dict(autorange='reversed', title='Proceso'),
+            xaxis=dict(range=[0, 100], dtick=10, title='Avance (%)', showgrid=True),
+            yaxis=dict(title='Proceso', automargin=True),
             legend_title_text='Tipo',
             template='plotly_dark',
             height=420,
-            margin=dict(l=260, r=20, t=60, b=60),
+            margin=dict(l=260, r=120, t=60, b=60),
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
         )
 
