@@ -72,7 +72,7 @@ try:
 
     # --- CRONOGRAMA (CON LEYENDA DE COMPLEJIDAD) ---
     st.divider()
-    st.markdown("### Gantt de Procesos - Granel")
+    st.markdown("Gantt de Procesos")
     
     # Escala de colores para la complejidad
     color_scale = alt.Scale(
@@ -104,7 +104,7 @@ try:
 
     # --- GRÁFICO DE AVANCE (BARRAS DE UN SOLO COLOR) ---
     st.divider()
-    st.markdown("### Gráfico de Avance por Proceso - Granel")
+    st.markdown("Gráfico de Avance por Proceso")
 
     chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
         x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
@@ -120,7 +120,7 @@ try:
 
     # --- TABLA DE DATOS ---
     st.divider()
-    st.markdown("### Tabla de Datos de Procesos - Granel")
+    st.markdown("Tabla de Datos de Procesos")
     st.data_editor(
         df[[col_procesos, col_complejidad, col_avance, col_status, col_fecha_inicio, 'Fecha_Fin_Estimada']],
         use_container_width=True,
