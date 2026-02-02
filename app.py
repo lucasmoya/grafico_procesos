@@ -163,7 +163,7 @@ try:
         color=alt.Color('Metrica:N', 
                         scale=alt.Scale(domain=['Avance Real (%)', 'Avance Esperado (%)'],
                                         range=['#5276A7', '#E67E22']),
-                        legend=alt.Legend(title="Estado", orient='top')), # Moví la leyenda arriba para ganar ancho
+                        legend=alt.Legend(title="Estado", orient='top')),
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
             alt.Tooltip('Metrica', title="Tipo"),
@@ -171,9 +171,17 @@ try:
         ]
     ).properties(
         height=50,
-        width='container'  # <--- AJUSTA ESTE VALOR: 800 o 900 suele llenar bien pantallas estándar
+        width='container'
     ).facet(
-        row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left'))
+        row=alt.Row(
+            f'{col_procesos}:N', 
+            title="Procesos", 
+            header=alt.Header(
+                labelAngle=0, 
+                labelAlign='left',
+                labelLimit=150  # <--- AJUSTA ESTE VALOR: Define cuántos píxeles ocupará el texto antes de abreviarse
+            )
+        )
     ).configure_view(
         stroke=None
     )
