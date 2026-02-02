@@ -162,15 +162,16 @@ try:
         x=alt.X('Porcentaje:Q', title='Porcentaje (%)', scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Metrica:N', 
                         scale=alt.Scale(domain=['Avance Real (%)', 'Avance Esperado (%)'],
-                                        range=['#5276A7', '#E67E22']), # Azul vs Naranja
-                        legend=alt.Legend(title="Estado")),
+                                        range=['#5276A7', '#E67E22']),
+                        legend=alt.Legend(title="Estado", orient='top')), # Moví la leyenda arriba para ganar ancho
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
             alt.Tooltip('Metrica', title="Tipo"),
             alt.Tooltip('Porcentaje', title="%", format='.1f')
         ]
     ).properties(
-        height=50
+        height=50,
+        width=800  # <--- AJUSTA ESTE VALOR: 800 o 900 suele llenar bien pantallas estándar
     ).facet(
         row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left'))
     ).configure_view(
