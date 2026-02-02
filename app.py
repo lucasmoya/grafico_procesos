@@ -118,39 +118,49 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-    # --- TERCER GRÁFICO: COMPARATIVA AVANCE VS TIEMPO ESTIMADO ---
+# --- TERCER GRÁFICO: COMPARATIVA AVANCE VS TIEMPO ESTIMADO (COMPATIBLE V4) ---
     st.divider()
-    st.markdown("Comparativa: Avance Real vs. Tiempo Estimado (Línea Base)")
+    st.markdown("### Comparativa: Avance Real vs. Tiempo Estimado (Línea Base)")
 
-    # Transformamos el DataFrame para que sea "largo" (long format) y Altair pueda agrupar las barras
+    # 1. Preparar datos en formato largo (Long Format)
     df_comparativo = df.melt(
         id_vars=[col_procesos], 
         value_vars=[col_avance, col_tiempo_meses],
-        var_name='Métrica', 
+        var_name='Metrica', 
         value_name='Valor'
     )
 
-    # Renombrar las métricas para que se vean bien en la leyenda
-    df_comparativo['Métrica'] = df_comparativo['Métrica'].replace({
+    # 2. Limpiar nombres para la leyenda
+    df_comparativo['Metrica'] = df_comparativo['Metrica'].replace({
         col_avance: 'Avance Real (%)',
         col_tiempo_meses: 'Tiempo Estimado (Meses)'
     })
 
+    # 3. Crear el gráfico usando Facetas para agrupar
     chart_comparativo = alt.Chart(df_comparativo).mark_bar().encode(
-        # Eje Y: El proceso
-        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
-        # Eje X: El valor de la métrica
-        x=alt.X('Valor:Q', title='Valor (Porcentaje / Meses)'),
-        # Color: Diferencia entre Avance y Tiempo
-        color=alt.Color('Métrica:N', 
-                        scale=alt.Scale(range=['#5276A7', '#F4A460']),
+        # Eje Y principal: El Proceso
+        y=alt.Y('Metrica:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+        # Eje X: El valor numérico
+        x=alt.X('Valor:Q', title='Valor (Puntos / Meses)'),
+        # Color diferenciador
+        color=alt.Color('Metrica:N', 
+                        scale=alt.Scale(domain=['Avance Real (%)', 'Tiempo Estimado (Meses)'],
+                                        range=['#5276A7', '#F4A460']),
                         legend=alt.Legend(title="Indicador")),
-        # Agrupación: Esto crea las dos barras por proceso
-        yOffset='Métrica:N',
-        tooltip=['Procesos:N', 'Métrica:N', 'Valor:Q']
+        # Tooltip para detalle
+        tooltip=[
+            alt.Tooltip(col_procesos, title="Proceso"),
+            alt.Tooltip('Metrica', title="Tipo"),
+            alt.Tooltip('Valor', title="Valor", format='.1f')
+        ]
     ).properties(
-        height=400 # Aumentamos un poco el alto para que quepan las barras dobles
-    ).interactive()
+        height=40 # Altura de cada sub-barra
+    ).facet(
+        # Esta es la alternativa a yOffset en V4: Agrupar por Proceso en el eje Y
+        row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left'))
+    ).configure_view(
+        stroke=None # Limpiar bordes internos
+    )
 
     st.altair_chart(chart_comparativo, use_container_width=True)
 
