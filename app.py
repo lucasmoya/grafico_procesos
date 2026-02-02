@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import os
+import plotly.express as px
 from datetime import datetime, timedelta
 
 # ---------------------------------
