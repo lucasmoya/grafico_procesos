@@ -62,13 +62,46 @@ try:
     )
 
     # --- KPIs SUPERIORES ---
+# --- KPIs SUPERIORES POTENCIADOS ---
     st.divider()
-    m1, m2, m3 = st.columns(3)
+    
+    # Cálculos para nuevos KPIs
+    # 1. Índice de Salud (SPI): Relación Avance Real vs Esperado
+    # Evitamos división por cero con clip
+    df['SPI'] = df[col_avance] / df['Avance_Esperado'].replace(0, 1)
+    salud_global = df['SPI'].mean()
+    
+    # 2. Procesos Críticos: Complejidad Alta (>7) con poco avance (<30%)
+    criticos = len(df[(df[col_complejidad] >= 7) & (df[col_avance] < 30)])
+    
+    # 3. Cuello de Botella (Etapa con más procesos en curso)
+    # Buscamos la columna con más registros que no sea 'Listo' entre los hitos
+    hitos = ['Levantar información', 'Armar diagrama', 'Validar diagrama', 'Mejorar proceso', 'Validar mejora', 'Implementación']
+    etapas_activas = df[hitos].apply(lambda x: x.str.contains('curso|proceso', case=False, na=False)).sum()
+    etapa_critica = etapas_activas.idxmax() if etapas_activas.max() > 0 else "N/A"
+
+    # Renderizado en Streamlit
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
+    
     m1.metric("Avance Promedio", f"{df[col_avance].mean():.1f}%")
-    m2.metric("Total de Procesos", len(df))
+    m2.metric("Total Procesos", len(df))
+    
+    # KPI 3: Salud del Cronograma (Basado en el gráfico de cumplimiento)
+    color_salud = "normal" if salud_global >= 0.9 else "inverse"
+    m3.metric("Índice de Salud", f"{salud_global:.2f}", 
+              delta=f"{'En Tiempo' if salud_global >= 1 else 'Retraso'}", 
+              delta_color=color_salud)
+    
+    # KPI 4: Alerta de Riesgo (Complejidad vs Avance)
+    m4.metric("Riesgo Crítico", f"{criticos} Proc.", help="Procesos de alta complejidad con avance menor al 30%")
+    
+    # KPI 5: Cuello de Botella
+    m5.metric("Punto Crítico", etapa_critica, help="Etapa del flujo con más procesos acumulados actualmente")
+    
+    # KPI 6: Procesos en Curso (Tu métrica original)
     if col_status in df.columns:
         en_curso = len(df[df[col_status].str.contains("curso", case=False, na=False)])
-        m3.metric("Procesos en Curso", en_curso)
+        m6.metric("En Curso", en_curso)
 
     # --- CRONOGRAMA (CON LEYENDA DE COMPLEJIDAD) ---
     st.divider()
