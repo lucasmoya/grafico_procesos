@@ -137,7 +137,7 @@ try:
     st.altair_chart(chart_avance, use_container_width=True)
 
     # ---------------------------------
-    # Real vs Planificado (agrupado)
+    # Real vs Planificado (AGRUPADO)
     # ---------------------------------
     st.divider()
     st.markdown("Avance Real vs Planificado")
@@ -154,12 +154,13 @@ try:
         'Avance_Planificado': 'Avance Planificado'
     })
 
-    chart_compare = alt.Chart(df_compare).mark_bar().encode(
+    chart_compare = alt.Chart(df_compare).mark_bar(size=20).encode(
         x=alt.X(
             f'{col_procesos}:N',
             title='Proceso',
             axis=alt.Axis(labelAngle=-30)
         ),
+        xOffset=alt.XOffset('Tipo:N'),
         y=alt.Y(
             'Avance:Q',
             scale=alt.Scale(domain=[0, 100]),
