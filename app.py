@@ -51,7 +51,6 @@ try:
     col_procesos = 'Procesos'
     col_complejidad = 'Complejidad'
     col_avance = '% de avance'
-    col_status = 'Status del proceso'
     col_fecha_inicio = 'Fecha Inicio'
     col_tiempo_meses = 'Tiempo en meses'
 
@@ -131,7 +130,7 @@ try:
     st.divider()
     st.markdown("Avance por Proceso")
 
-    chart_avance = alt.Chart(df).mark_bar(color='#5276A7').encode(
+    chart_avance = alt.Chart(df).mark_bar(size=18, color='#5276A7').encode(
         x=alt.X(f'{col_avance}:Q', scale=alt.Scale(domain=[0, 100]), title="Avance (%)"),
         y=alt.Y(f'{col_procesos}:N', sort='-x'),
         tooltip=[col_procesos, col_avance]
@@ -140,7 +139,7 @@ try:
     st.altair_chart(chart_avance, use_container_width=True)
 
     # ---------------------------------
-    # Real vs Línea Base (COMPATIBLE v4)
+    # Real vs Línea Base (CORREGIDO)
     # ---------------------------------
     st.divider()
     st.markdown("Avance Real vs Línea Base")
@@ -157,9 +156,15 @@ try:
         'Avance_Esperado': 'Avance Esperado'
     })
 
-    chart_compare = alt.Chart(df_compare).mark_bar().encode(
+    chart_compare = alt.Chart(df_compare).mark_bar(
+        size=18
+    ).encode(
         x=alt.X('Tipo:N', title=None),
-        y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
+        y=alt.Y(
+            'Avance:Q',
+            scale=alt.Scale(domain=[0, 100]),
+            title='Avance (%)'
+        ),
         color=alt.Color(
             'Tipo:N',
             scale=alt.Scale(
@@ -171,12 +176,15 @@ try:
         tooltip=[col_procesos, 'Tipo', 'Avance'],
         column=alt.Column(
             f'{col_procesos}:N',
-            header=alt.Header(labelAngle=0),
-            title=None
+            title=None,
+            header=alt.Header(labelAngle=0)
         )
-    ).properties(height=300)
+    ).properties(
+        height=260,
+        width=90
+    )
 
-    st.altair_chart(chart_compare, use_container_width=True)
+    st.altair_chart(chart_compare, use_container_width=False)
 
     # ---------------------------------
     # Tabla
