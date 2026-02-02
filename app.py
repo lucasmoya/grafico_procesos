@@ -2,7 +2,12 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import os
-import plotly.express as px
+# Intentional: intentar importar plotly, pero no detener la app si no está disponible
+try:
+    import plotly.express as px
+    HAS_PLOTLY = True
+except Exception:
+    HAS_PLOTLY = False
 from datetime import datetime, timedelta
 
 # ---------------------------------
@@ -158,22 +163,52 @@ try:
         'Avance_Esperado': 'Avance Planificado'
     })
 
-    # Gráfico de barras por proceso (evitar xOffset que no está soportado en esta versión)
-    chart_compare = alt.Chart(df_compare).mark_bar().encode(
-        x=alt.X(f'{col_procesos}:N', title=None, axis=alt.Axis(labelAngle=-45)),
-        y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)', stack=None),
-        color=alt.Color('Tipo:N',
-                        scale=alt.Scale(
-                            domain=['Avance Real', 'Avance Planificado'],
-                            range=['#5276A7', '#B0B0B0']
-                        ),
-                        title='Tipo'),
-        tooltip=[col_procesos, 'Tipo', 'Avance']
-    ).properties(
-        height=300
-    )
+    if HAS_PLOTLY:
+        # Usa Plotly si está disponible (barras agrupadas side-by-side)
+        fig = px.bar(
+            df_compare,
+            x=col_procesos,
+            y='Avance',
+            color='Tipo',
+            barmode='group',
+            color_discrete_map={
+                'Avance Real': '#5276A7',
+                'Avance Planificado': '#B0B0B0'
+            },
+            labels={ 'Avance': 'Avance (%)', col_procesos: 'Proceso', 'Tipo': 'Tipo' }
+        )
 
-    st.altair_chart(chart_compare, use_container_width=True)
+        fig.update_layout(
+            yaxis=dict(range=[0, 100]),
+            xaxis_tickangle=-45,
+            legend_title_text='Tipo',
+            template='plotly_dark',
+            height=400
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        # Fallback a Altair sin depender de xOffset: usar faceting (cada proceso es una columna)
+        # Esto muestra barras "lado a lado" por proceso (pequeños múltiplos) y evita importar plotly.
+        chart_alt = alt.Chart(df_compare).mark_bar().encode(
+            x=alt.X('Tipo:N', title=None),
+            y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
+            color=alt.Color('Tipo:N',
+                            scale=alt.Scale(
+                                domain=['Avance Real', 'Avance Planificado'],
+                                range=['#5276A7', '#B0B0B0']
+                            ),
+                            title='Tipo'),
+            tooltip=[col_procesos, 'Tipo', 'Avance']
+        ).properties(
+            height=300
+        ).facet(
+            column=alt.Column(f'{col_procesos}:N', header=alt.Header(labelAngle=-45, labelOrient='bottom'))
+        ).resolve_scale(
+            y='shared'
+        )
+
+        st.altair_chart(chart_alt, use_container_width=True)
 
     # ---------------------------------
     # Tabla
