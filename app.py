@@ -118,6 +118,42 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
+    # --- TERCER GRÁFICO: COMPARATIVA AVANCE VS TIEMPO ESTIMADO ---
+    st.divider()
+    st.markdown("Comparativa: Avance Real vs. Tiempo Estimado (Línea Base)")
+
+    # Transformamos el DataFrame para que sea "largo" (long format) y Altair pueda agrupar las barras
+    df_comparativo = df.melt(
+        id_vars=[col_procesos], 
+        value_vars=[col_avance, col_tiempo_meses],
+        var_name='Métrica', 
+        value_name='Valor'
+    )
+
+    # Renombrar las métricas para que se vean bien en la leyenda
+    df_comparativo['Métrica'] = df_comparativo['Métrica'].replace({
+        col_avance: 'Avance Real (%)',
+        col_tiempo_meses: 'Tiempo Estimado (Meses)'
+    })
+
+    chart_comparativo = alt.Chart(df_comparativo).mark_bar().encode(
+        # Eje Y: El proceso
+        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
+        # Eje X: El valor de la métrica
+        x=alt.X('Valor:Q', title='Valor (Porcentaje / Meses)'),
+        # Color: Diferencia entre Avance y Tiempo
+        color=alt.Color('Métrica:N', 
+                        scale=alt.Scale(range=['#5276A7', '#F4A460']),
+                        legend=alt.Legend(title="Indicador")),
+        # Agrupación: Esto crea las dos barras por proceso
+        yOffset='Métrica:N',
+        tooltip=['Procesos:N', 'Métrica:N', 'Valor:Q']
+    ).properties(
+        height=400 # Aumentamos un poco el alto para que quepan las barras dobles
+    ).interactive()
+
+    st.altair_chart(chart_comparativo, use_container_width=True)
+
 
     # --- TABLA DE DATOS ---
     st.divider()
