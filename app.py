@@ -181,6 +181,7 @@ try:
                 labelAngle=0, 
                 labelAlign='left',
                 labelLimit=100  # <--- AJUSTA ESTE VALOR: Define cuántos píxeles ocupará el texto antes de abreviarse
+                labelFontSize=1,
             )
         )
     ).configure_view(
