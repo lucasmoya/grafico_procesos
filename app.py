@@ -163,41 +163,32 @@ try:
     })
 
     if HAS_PLOTLY:
-        import plotly.graph_objects as go
+        import plotly.express as px
 
-        procesos_unicos = df[col_procesos].astype(str).tolist()
-        real_vals = df[col_avance].tolist()
-        plan_vals = df['Avance_Esperado'].tolist()
+        # Ordenar procesos para que la disposición sea la misma que en "Avance por Proceso"
+        procesos_order = df.sort_values(col_avance, ascending=False)[col_procesos].astype(str).tolist()
 
-        fig = go.Figure(
-            data=[
-                go.Bar(
-                    x=real_vals,
-                    y=procesos_unicos,
-                    name='Avance Real',
-                    orientation='h',
-                    marker_color='#5276A7',
-                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
-                ),
-                go.Bar(
-                    x=plan_vals,
-                    y=procesos_unicos,
-                    name='Avance Planificado',
-                    orientation='h',
-                    marker_color='#B0B0B0',
-                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
-                )
-            ]
+        # Asegurar orden categórico para que px.bar agrupe correctamente
+        df_compare[col_procesos] = pd.Categorical(df_compare[col_procesos].astype(str),
+                                                  categories=procesos_order,
+                                                  ordered=True)
+
+        fig = px.bar(
+            df_compare,
+            x='Avance',
+            y=col_procesos,
+            color='Tipo',
+            orientation='h',
+            barmode='group',
+            category_orders={col_procesos: procesos_order},
+            color_discrete_map={'Avance Real': '#5276A7', 'Avance Planificado': '#B0B0B0'},
+            labels={'Avance': 'Avance (%)', col_procesos: 'Proceso', 'Tipo': 'Tipo'}
         )
 
         fig.update_layout(
-            barmode='group',               # side-by-side por categoría
-            bargap=0.25,
-            xaxis=dict(range=[0, 110], dtick=10, title='Avance (%)', showgrid=True, gridcolor='rgba(255,255,255,0.06)'),
-            yaxis=dict(autorange='reversed', title='Proceso', automargin=True),
+            xaxis=dict(range=[0, 100], dtick=10, title='Avance (%)', showgrid=True, gridcolor='rgba(255,255,255,0.06)'),
+            yaxis=dict(autorange='reversed', title='Proceso'),
             template='plotly_dark',
-            plot_bgcolor='rgba(0,0,0,0)',
-            paper_bgcolor='rgba(0,0,0,0)',
             height=350,
             margin=dict(l=300, r=40, t=60, b=60),
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
