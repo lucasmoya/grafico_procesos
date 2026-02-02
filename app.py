@@ -145,7 +145,7 @@ try:
     st.altair_chart(chart_avance, use_container_width=True)
 
     # ---------------------------------
-    # Real vs Línea Base (CORREGIDO)
+    # Real vs Línea Base (CORREGIDO - barras horizontales agrupadas)
     # ---------------------------------
     st.divider()
     st.markdown("Avance Real vs Línea Base")
@@ -173,30 +173,29 @@ try:
 
         fig = go.Figure(
             data=[
-                go.Bar(name='Avance Real', x=procesos_unicos, y=real_vals, marker_color='#5276A7'),
-                go.Bar(name='Avance Planificado', x=procesos_unicos, y=plan_vals, marker_color='#B0B0B0')
+                go.Bar(name='Avance Real', y=procesos_unicos, x=real_vals, orientation='h', marker_color='#5276A7'),
+                go.Bar(name='Avance Planificado', y=procesos_unicos, x=plan_vals, orientation='h', marker_color='#B0B0B0')
             ]
         )
 
         fig.update_layout(
             barmode='group',
-            yaxis=dict(range=[0, 100], title='Avance (%)'),
+            xaxis=dict(range=[0, 100], title='Avance (%)'),
+            yaxis=dict(autorange='reversed', title='Proceso'),
             legend_title_text='Tipo',
             template='plotly_dark',
             height=420,
-            margin=dict(l=60, r=20, t=60, b=140),
+            margin=dict(l=260, r=20, t=60, b=60),
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
         )
 
-        fig.update_xaxes(tickangle=-45, tickmode='array', tickvals=procesos_unicos, ticktext=procesos_unicos, automargin=True)
-
         st.plotly_chart(fig, use_container_width=True)
     else:
-        # Fallback a Altair sin depender de xOffset: usar faceting (cada proceso es una columna)
-        # Quitar etiquetas de x (Avance Real / Avance Planificado) para dejar solo el nombre del proceso en el header
+        # Fallback a Altair: barras horizontales (si xOffset no está disponible esto producirá barras apiladas,
+        # pero los procesos quedarán en el eje Y y el gráfico ocupará todo el ancho)
         chart_alt = alt.Chart(df_compare).mark_bar().encode(
-            x=alt.X('Tipo:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
-            y=alt.Y('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
+            x=alt.X('Avance:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
+            y=alt.Y(f'{col_procesos}:N', sort='-x', title='Proceso'),
             color=alt.Color('Tipo:N',
                             scale=alt.Scale(
                                 domain=['Avance Real', 'Avance Planificado'],
@@ -205,11 +204,7 @@ try:
                             title='Tipo'),
             tooltip=[col_procesos, 'Tipo', 'Avance']
         ).properties(
-            height=300
-        ).facet(
-            column=alt.Column(f'{col_procesos}:N', header=alt.Header(labelAngle=-45, labelOrient='bottom'))
-        ).resolve_scale(
-            y='shared'
+            height=400
         )
 
         st.altair_chart(chart_alt, use_container_width=True)
