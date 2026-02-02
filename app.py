@@ -118,52 +118,69 @@ try:
 
     st.altair_chart(chart_bars, use_container_width=True)
 
-# --- TERCER GRÁFICO: COMPARATIVA AVANCE VS TIEMPO ESTIMADO (COMPATIBLE V4) ---
+# --- TERCER GRÁFICO: AVANCE REAL VS. AVANCE ESPERADO (TEÓRICO) ---
     st.divider()
-    st.markdown("### Comparativa: Avance Real vs. Tiempo Estimado (Línea Base)")
+    st.markdown("### Comparativa: Avance Real vs. Avance Esperado a la Fecha")
 
-    # 1. Preparar datos en formato largo (Long Format)
-    df_comparativo = df.melt(
+    # 1. Cálculo del Avance Esperado (Teórico) basado en el tiempo
+    hoy_dt = pd.to_datetime(datetime.now().date())
+    
+    def calcular_avance_esperado(row):
+        fecha_inicio = row[col_fecha_inicio]
+        meses_totales = row[col_tiempo_meses]
+        
+        if meses_totales <= 0: return 0.0
+        
+        # Días totales del proyecto vs días transcurridos hasta hoy
+        dias_totales = meses_totales * 30.44
+        dias_transcurridos = (hoy_dt - fecha_inicio).days
+        
+        # Calculamos el porcentaje de tiempo que ya debería haber pasado
+        avance_teorico = (dias_transcurridos / dias_totales) * 100
+        
+        # Limitar entre 0 y 100
+        return max(0.0, min(100.0, avance_teorico))
+
+    df['Avance_Esperado'] = df.apply(calcular_avance_esperado, axis=1)
+
+    # 2. Transformar a formato largo para Altair
+    df_comp_fecha = df.melt(
         id_vars=[col_procesos], 
-        value_vars=[col_avance, col_tiempo_meses],
+        value_vars=[col_avance, 'Avance_Esperado'],
         var_name='Metrica', 
-        value_name='Valor'
+        value_name='Porcentaje'
     )
 
-    # 2. Limpiar nombres para la leyenda
-    df_comparativo['Metrica'] = df_comparativo['Metrica'].replace({
+    df_comp_fecha['Metrica'] = df_comp_fecha['Metrica'].replace({
         col_avance: 'Avance Real (%)',
-        col_tiempo_meses: 'Tiempo Estimado (Meses)'
+        'Avance_Esperado': 'Avance Esperado (%)'
     })
 
-    # 3. Crear el gráfico usando Facetas para agrupar
-    chart_comparativo = alt.Chart(df_comparativo).mark_bar().encode(
-        # Eje Y principal: El Proceso
+    # 3. Gráfico de barras agrupadas (Compatibilidad V4)
+    chart_cumplimiento = alt.Chart(df_comp_fecha).mark_bar().encode(
         y=alt.Y('Metrica:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
-        # Eje X: El valor numérico
-        x=alt.X('Valor:Q', title='Valor (Puntos / Meses)'),
-        # Color diferenciador
+        x=alt.X('Porcentaje:Q', title='Porcentaje (%)', scale=alt.Scale(domain=[0, 100])),
         color=alt.Color('Metrica:N', 
-                        scale=alt.Scale(domain=['Avance Real (%)', 'Tiempo Estimado (Meses)'],
-                                        range=['#5276A7', '#F4A460']),
-                        legend=alt.Legend(title="Indicador")),
-        # Tooltip para detalle
+                        scale=alt.Scale(domain=['Avance Real (%)', 'Avance Esperado (%)'],
+                                        range=['#5276A7', '#E67E22']), # Azul vs Naranja
+                        legend=alt.Legend(title="Estado")),
         tooltip=[
             alt.Tooltip(col_procesos, title="Proceso"),
             alt.Tooltip('Metrica', title="Tipo"),
-            alt.Tooltip('Valor', title="Valor", format='.1f')
+            alt.Tooltip('Porcentaje', title="%", format='.1f')
         ]
     ).properties(
-        height=40 # Altura de cada sub-barra
+        height=50
     ).facet(
-        # Esta es la alternativa a yOffset en V4: Agrupar por Proceso en el eje Y
         row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left'))
     ).configure_view(
-        stroke=None # Limpiar bordes internos
+        stroke=None
     )
 
-    st.altair_chart(chart_comparativo, use_container_width=True)
+    st.altair_chart(chart_cumplimiento, use_container_width=True)
 
+    # Mensaje de ayuda visual
+    st.caption("📌 **Nota:** Si la barra naranja (Esperado) es más larga que la azul (Real), el proceso presenta un retraso respecto al cronograma inicial.")
 
     # --- TABLA DE DATOS ---
     st.divider()
