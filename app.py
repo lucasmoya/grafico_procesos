@@ -119,21 +119,56 @@ try:
     st.altair_chart(chart_bars, use_container_width=True)
 
     
-    # --- GRÁFICO DE AVANCE (BARRAS DE UN SOLO COLOR) ---
-    st.divider()
-    st.markdown("Gráfico de Avance por Proceso")
+# --- GRÁFICO DE AVANCE REAL VS PLANIFICADO ---
+st.divider()
+st.markdown("Gráfico de Avance Real vs Planificado")
 
-    chart_bars = alt.Chart(df).mark_bar(color='#5276A7').encode(
-        x=alt.X(f'{col_avance}:Q', title='Avance (%)', scale=alt.Scale(domain=[0, 100])),
-        y=alt.Y(f'{col_procesos}:N', title='Procesos', sort='-x'),
-        tooltip=[
-            alt.Tooltip(col_procesos, title="Proceso"),
-            alt.Tooltip(col_complejidad, format='.1f', title="Complejidad"),
-            alt.Tooltip(col_avance, format='.0f', title="Avance %")
-        ]
-    ).properties(height=250).interactive()
+df_compare = df.melt(
+    id_vars=[col_procesos, col_complejidad],
+    value_vars=[col_avance, 'Avance_Esperado'],
+    var_name='Tipo',
+    value_name='Avance'
+)
 
-    st.altair_chart(chart_bars, use_container_width=True)
+df_compare['Tipo'] = df_compare['Tipo'].replace({
+    col_avance: 'Avance Real',
+    'Avance_Esperado': 'Avance Planificado'
+})
+
+chart_bars = alt.Chart(df_compare).mark_bar().encode(
+    x=alt.X(
+        'Avance:Q',
+        title='Avance (%)',
+        scale=alt.Scale(domain=[0, 100])
+    ),
+    y=alt.Y(
+        'Tipo:N',
+        title=None
+    ),
+    color=alt.Color(
+        'Tipo:N',
+        scale=alt.Scale(
+            domain=['Avance Real', 'Avance Planificado'],
+            range=['#5276A7', '#E6D8AD']  # azul / beige
+        ),
+        legend=None
+    ),
+    tooltip=[
+        alt.Tooltip(col_procesos, title="Proceso"),
+        alt.Tooltip('Tipo', title="Tipo"),
+        alt.Tooltip('Avance', format='.1f', title="Avance %"),
+        alt.Tooltip(col_complejidad, format='.1f', title="Complejidad")
+    ],
+    row=alt.Row(
+        f'{col_procesos}:N',
+        header=alt.Header(labelAngle=0),
+        title=None
+    )
+).properties(
+    height=70
+)
+
+st.altair_chart(chart_bars, use_container_width=True)
 
     # --- TABLA DE DATOS ---
     st.divider()
