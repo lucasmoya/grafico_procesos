@@ -164,43 +164,59 @@ try:
     })
 
     if HAS_PLOTLY:
-        # Usar Plotly Graph Objects para barras horizontales agrupadas (side-by-side, no apiladas)
+        # Usar Plotly Graph Objects para barras horizontales agrupadas (side-by-side)
         import plotly.graph_objects as go
 
         procesos_unicos = df[col_procesos].tolist()
         real_vals = df[col_avance].tolist()
         plan_vals = df['Avance_Esperado'].tolist()
 
+        # crear posiciones numéricas y desplazar ligeramente para tener dos barras por fila (side-by-side)
+        idx = list(range(len(procesos_unicos)))
+        offset = 0.18
+        y_real = [i - offset for i in idx]
+        y_plan = [i + offset for i in idx]
+
         fig = go.Figure(
             data=[
                 go.Bar(
                     x=real_vals,
-                    y=procesos_unicos,
+                    y=y_real,
                     name='Avance Real',
                     orientation='h',
                     marker_color='#5276A7',
-                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
+                    hovertemplate='%{text}: %{x}%<extra></extra>',
+                    text=procesos_unicos,
+                    width=0.34
                 ),
                 go.Bar(
                     x=plan_vals,
-                    y=procesos_unicos,
+                    y=y_plan,
                     name='Avance Planificado',
                     orientation='h',
                     marker_color='#B0B0B0',
-                    hovertemplate='%{y}<br>%{x}%<extra></extra>'
+                    hovertemplate='%{text}: %{x}%<extra></extra>',
+                    text=procesos_unicos,
+                    width=0.34
                 )
             ]
         )
 
         fig.update_layout(
-            barmode='group',
+            barmode='overlay',        # overlay porque desplazamos manualmente las y
             bargap=0.25,
-            xaxis=dict(range=[0, 100], dtick=10, title='Avance (%)', showgrid=True),
-            yaxis=dict(autorange='reversed', title='Proceso', automargin=True),
+            xaxis=dict(range=[0, 110], dtick=10, title='Avance (%)', showgrid=True),  # extender fondo hasta 110%
+            yaxis=dict(
+                tickmode='array',
+                tickvals=idx,
+                ticktext=procesos_unicos,
+                autorange='reversed',
+                title='Proceso'
+            ),
             legend_title_text='Tipo',
             template='plotly_dark',
             height=420,
-            margin=dict(l=260, r=40, t=60, b=60),
+            margin=dict(l=300, r=40, t=60, b=60),
             legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
         )
 
