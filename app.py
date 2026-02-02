@@ -51,7 +51,6 @@ try:
     col_procesos = 'Procesos'
     col_complejidad = 'Complejidad'
     col_avance = '% de avance'
-    col_status = 'Status del proceso'
     col_fecha_inicio = 'Fecha Inicio'
     col_tiempo_meses = 'Tiempo en meses'
 
@@ -70,7 +69,7 @@ try:
     )
 
     # ---------------------------------
-    # Línea base (avance planificado)
+    # Línea base (avance esperado)
     # ---------------------------------
     hoy = pd.to_datetime(datetime.now().date())
 
@@ -78,24 +77,27 @@ try:
         (hoy - df[col_fecha_inicio]).dt.days / 30.44
     ).clip(lower=0)
 
-    df['Avance_Planificado'] = (
+    df['Avance_Esperado'] = (
         (df['Meses_Transcurridos'] / df[col_tiempo_meses]) * 100
     ).clip(upper=100).round(1)
 
-    df['Atrasado'] = df[col_avance] < df['Avance_Planificado']
+    df['Atrasado'] = df[col_avance] < df['Avance_Esperado']
+    df['Adelantado'] = df[col_avance] > df['Avance_Esperado']
 
     # ---------------------------------
     # KPIs
     # ---------------------------------
     total = len(df)
     pct_atrasados = (df['Atrasado'].sum() / total) * 100
+    pct_adelantados = (df['Adelantado'].sum() / total) * 100
 
     st.divider()
-    k1, k2, k3 = st.columns(3)
+    k1, k2, k3, k4 = st.columns(4)
 
     k1.metric("Avance Promedio", f"{df[col_avance].mean():.1f}%")
     k2.metric("Total de Procesos", total)
     k3.metric("Procesos Atrasados", f"{pct_atrasados:.1f}%")
+    k4.metric("Procesos Adelantados", f"{pct_adelantados:.1f}%")
 
     # ---------------------------------
     # Gantt
@@ -113,7 +115,7 @@ try:
         x2='Fecha_Fin_Estimada:T',
         y=alt.Y(f'{col_procesos}:N', sort='x', title="Proceso"),
         color=alt.Color('Nivel_Complejidad:N', scale=color_scale, title="Complejidad"),
-        tooltip=[col_procesos, col_avance, 'Avance_Planificado']
+        tooltip=[col_procesos, col_avance, 'Avance_Esperado']
     )
 
     linea_hoy = alt.Chart(
@@ -128,39 +130,36 @@ try:
     st.divider()
     st.markdown("Avance por Proceso")
 
-    chart_avance = alt.Chart(df).mark_bar(color='#5276A7').encode(
-        x=alt.X(f'{col_procesos}:N', title='Proceso', axis=alt.Axis(labelAngle=-30)),
-        y=alt.Y(f'{col_avance}:Q', scale=alt.Scale(domain=[0, 100]), title='Avance (%)'),
+    chart_avance = alt.Chart(df).mark_bar(size=18, color='#5276A7').encode(
+        x=alt.X(f'{col_avance}:Q', scale=alt.Scale(domain=[0, 100]), title="Avance (%)"),
+        y=alt.Y(f'{col_procesos}:N', sort='-x'),
         tooltip=[col_procesos, col_avance]
     ).properties(height=300)
 
     st.altair_chart(chart_avance, use_container_width=True)
 
     # ---------------------------------
-    # Real vs Planificado (AGRUPADO)
+    # Real vs Línea Base (CORREGIDO)
     # ---------------------------------
     st.divider()
-    st.markdown("Avance Real vs Planificado")
+    st.markdown("Avance Real vs Línea Base")
 
     df_compare = df.melt(
         id_vars=[col_procesos],
-        value_vars=[col_avance, 'Avance_Planificado'],
+        value_vars=[col_avance, 'Avance_Esperado'],
         var_name='Tipo',
         value_name='Avance'
     )
 
     df_compare['Tipo'] = df_compare['Tipo'].replace({
         col_avance: 'Avance Real',
-        'Avance_Planificado': 'Avance Planificado'
+        'Avance_Esperado': 'Avance Esperado'
     })
 
-    chart_compare = alt.Chart(df_compare).mark_bar(size=20).encode(
-        x=alt.X(
-            f'{col_procesos}:N',
-            title='Proceso',
-            axis=alt.Axis(labelAngle=-30)
-        ),
-        xOffset=alt.XOffset('Tipo:N'),
+    chart_compare = alt.Chart(df_compare).mark_bar(
+        size=18
+    ).encode(
+        x=alt.X('Tipo:N', title=None),
         y=alt.Y(
             'Avance:Q',
             scale=alt.Scale(domain=[0, 100]),
@@ -169,19 +168,23 @@ try:
         color=alt.Color(
             'Tipo:N',
             scale=alt.Scale(
-                domain=['Avance Real', 'Avance Planificado'],
+                domain=['Avance Real', 'Avance Esperado'],
                 range=['#5276A7', '#B0B0B0']
             ),
-            title='Tipo de Avance'
+            legend=None
         ),
-        tooltip=[
-            alt.Tooltip(col_procesos, title="Proceso"),
-            alt.Tooltip('Tipo', title="Tipo"),
-            alt.Tooltip('Avance', format='.1f', title="Avance %")
-        ]
-    ).properties(height=350)
+        tooltip=[col_procesos, 'Tipo', 'Avance'],
+        column=alt.Column(
+            f'{col_procesos}:N',
+            title=None,
+            header=alt.Header(labelAngle=0)
+        )
+    ).properties(
+        height=260,
+        width=90
+    )
 
-    st.altair_chart(chart_compare, use_container_width=True)
+    st.altair_chart(chart_compare, use_container_width=False)
 
     # ---------------------------------
     # Tabla
@@ -190,7 +193,7 @@ try:
     st.markdown("Tabla de Procesos")
 
     st.data_editor(
-        df[[col_procesos, col_complejidad, col_avance, 'Avance_Planificado',
+        df[[col_procesos, col_complejidad, col_avance, 'Avance_Esperado',
             col_fecha_inicio, 'Fecha_Fin_Estimada']],
         hide_index=True,
         use_container_width=True
