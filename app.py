@@ -164,30 +164,31 @@ try:
     })
 
     if HAS_PLOTLY:
-        procesos_unicos = df[col_procesos].unique().tolist()
-        # Usa Plotly si está disponible (barras agrupadas side-by-side)
-        fig = px.bar(
-            df_compare,
-            x=col_procesos,
-            y='Avance',
-            color='Tipo',
-            barmode='group',
-            color_discrete_map={
-                'Avance Real': '#5276A7',
-                'Avance Planificado': '#B0B0B0'
-            },
-            labels={ 'Avance': 'Avance (%)', col_procesos: 'Proceso', 'Tipo': 'Tipo' }
+        # Construir dos series por proceso para asegurar un solo tick por proceso
+        procesos_unicos = df[col_procesos].tolist()
+        real_vals = [df.loc[df[col_procesos] == p, col_avance].iloc[0] for p in procesos_unicos]
+        plan_vals = [df.loc[df[col_procesos] == p, 'Avance_Esperado'].iloc[0] for p in procesos_unicos]
+
+        import plotly.graph_objects as go
+
+        fig = go.Figure(
+            data=[
+                go.Bar(name='Avance Real', x=procesos_unicos, y=real_vals, marker_color='#5276A7'),
+                go.Bar(name='Avance Planificado', x=procesos_unicos, y=plan_vals, marker_color='#B0B0B0')
+            ]
         )
 
         fig.update_layout(
-            yaxis=dict(range=[0, 100]),
+            barmode='group',
+            yaxis=dict(range=[0, 100], title='Avance (%)'),
             legend_title_text='Tipo',
             template='plotly_dark',
-            height=400,
-            xaxis=dict(tickangle=-45, automargin=True)
+            height=420,
+            margin=dict(l=60, r=20, t=60, b=140),
+            legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
         )
-        # Asegurar que sólo se muestre el nombre del proceso una vez por grupo
-        fig.update_xaxes(tickmode='array', tickvals=procesos_unicos, ticktext=procesos_unicos)
+
+        fig.update_xaxes(tickangle=-45, tickmode='array', tickvals=procesos_unicos, ticktext=procesos_unicos, automargin=True)
 
         st.plotly_chart(fig, use_container_width=True)
     else:
