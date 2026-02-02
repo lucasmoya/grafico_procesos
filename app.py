@@ -171,7 +171,7 @@ try:
         ]
     ).properties(
         height=50,
-        width=1200  # <--- AJUSTA ESTE VALOR: 800 o 900 suele llenar bien pantallas estándar
+        width='container'  # <--- AJUSTA ESTE VALOR: 800 o 900 suele llenar bien pantallas estándar
     ).facet(
         row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left'))
     ).configure_view(
