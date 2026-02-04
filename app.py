@@ -4,6 +4,11 @@ import altair as alt
 import os
 from datetime import datetime, timedelta
 
+# Lectura de los datos
+
+SHEET_ID = "1Wz7XjDyRzfWK6bAgl_yfu6D4BV8AnlgJzWO237Zd0Fc"
+BASE_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+
 # Configuración de la página
 st.set_page_config(page_title="Dashboard de Procesos", layout="wide")
 
@@ -15,23 +20,16 @@ tab1, tab2, tab3 = st.tabs(["Granel", "Medidor", "Envasado"])
 
 # Definimos una función para contener TODA tu lógica original
 def renderizar_dashboard(nombre_hoja):
-    file_path = "Procesos_Grafico.xlsx"
+    # Carga de datos
 
-    # 1. Lógica de consumo de datos adaptada a la pestaña
-    if os.path.exists(file_path):
-        try:
-            source_df = pd.read_excel(file_path, sheet_name=nombre_hoja)
-            st.info(f"📂 Datos de **{nombre_hoja}** cargados automáticamente.")
-        except Exception as e:
-            st.error(f"No se encontró la hoja '{nombre_hoja}' en el archivo.")
-            return
-    else:
-        uploaded_file = st.file_uploader(f"Selecciona el archivo Excel para {nombre_hoja}", type=["xlsx"], key=f"file_{nombre_hoja}")
-        if uploaded_file:
-            source_df = pd.read_excel(uploaded_file, sheet_name=nombre_hoja)
-        else:
-            st.warning(f"Esperando archivo Excel para {nombre_hoja}...")
-            return
+    try:
+        url = f"{BASE_URL}&sheet={nombre_hoja}"
+        source_df = pd.read_csv(url)
+        st.info(f"☁️ Datos de **{nombre_hoja}** cargados desde Google Sheets.")
+    except Exception as e:
+        st.error(f"No se pudo cargar la hoja '{nombre_hoja}' desde Google Sheets.")
+        return
+
 
     # --- TU LÓGICA ORIGINAL DE PROCESAMIENTO ---
     def extraer_complejidad(valor):
