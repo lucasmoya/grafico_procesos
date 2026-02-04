@@ -55,13 +55,23 @@ def renderizar_dashboard(nombre_hoja):
         col_avance = '% de avance'
         col_status = 'Status del proceso'
         
+        
         col_fecha_inicio = 'Fecha Inicio'
         col_tiempo_meses = 'Tiempo en meses'
 
         df = df.dropna(subset=[col_procesos])
         df[col_complejidad] = df[col_complejidad].apply(extraer_complejidad)
         df['Nivel_Complejidad'] = df[col_complejidad].apply(categorizar_complejidad)
-        df[col_avance] = df[col_avance].apply(lambda x: x * 100 if x <= 1 else x)
+        df[col_avance] = df[col_avance].apply(
+            lambda x: x * 100 if pd.notna(x) and x <= 1 else x
+        )
+
+
+        # --- FORZAR TIPOS NUMÉRICOS (CRÍTICO PARA GOOGLE SHEETS) ---
+        df[col_complejidad] = pd.to_numeric(df[col_complejidad], errors='coerce')
+        df[col_avance] = pd.to_numeric(df[col_avance], errors='coerce')
+        df[col_tiempo_meses] = pd.to_numeric(df[col_tiempo_meses], errors='coerce')
+
 
         # CÁLCULO DE FECHA DE TÉRMINO
         df[col_fecha_inicio] = pd.to_datetime(df[col_fecha_inicio])
