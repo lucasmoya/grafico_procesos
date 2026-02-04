@@ -41,15 +41,39 @@ def renderizar_dashboard(nombre_hoja):
             return 0.0
 
     def categorizar_complejidad(valor):
-        """Asigna la etiqueta de texto para la leyenda."""
-        if 1 <= valor < 4: return 'Baja'
-        elif 4 <= valor < 7: return 'Media'
-        elif valor >= 7: return 'Alta'
+        try:
+            valor = float(valor)
+            if 1 <= valor < 4:
+                return 'Baja'
+            elif 4 <= valor < 7:
+                return 'Media'
+            elif valor >= 7:
+                return 'Alta'
+        except:
+            pass
         return 'N/A'
+
+
 
     try:
         # --- PROCESAMIENTO ---
         df = source_df.copy()
+
+        # --- LIMPIEZA DURA DE DATOS (GOOGLE SHEETS SAFE MODE) ---
+        for col in [col_complejidad, col_avance, col_tiempo_meses]:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.replace('%', '', regex=False)
+                .str.replace(',', '.', regex=False)
+                .str.extract(r'([-+]?\d*\.?\d+)')[0]
+            )
+
+        df[col_complejidad] = pd.to_numeric(df[col_complejidad], errors='coerce')
+        df[col_avance] = pd.to_numeric(df[col_avance], errors='coerce')
+        df[col_tiempo_meses] = pd.to_numeric(df[col_tiempo_meses], errors='coerce')
+
+
         col_procesos = 'Procesos'
         col_complejidad = 'Complejidad'
         col_avance = '% de avance'
