@@ -136,20 +136,67 @@ def renderizar_dashboard(nombre_hoja):
         # --- COMPARATIVA REAL VS ESPERADO ---
         st.divider()
         st.markdown("Comparativa: Avance Real vs. Avance Esperado")
-        
-        df_comp_fecha = df.melt(id_vars=[col_procesos], value_vars=[col_avance, 'Avance_Esperado'], var_name='Metrica', value_name='Porcentaje')
-        df_comp_fecha['Metrica'] = df_comp_fecha['Metrica'].replace({col_avance: 'Avance Real (%)', 'Avance_Esperado': 'Avance Esperado (%)'})
 
-        chart_cumplimiento = alt.Chart(df_comp_fecha).mark_bar().encode(
-            y=alt.Y('Metrica:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
-            x=alt.X('Porcentaje:Q', title='Porcentaje (%)', scale=alt.Scale(domain=[0, 100])),
-            color=alt.Color('Metrica:N', scale=alt.Scale(range=['#5276A7', '#E67E22'])),
-            tooltip=[alt.Tooltip(col_procesos), alt.Tooltip('Porcentaje', format='.1f')]
-        ).properties(height=50, width=950).facet(
-            row=alt.Row(f'{col_procesos}:N', title="Procesos", header=alt.Header(labelAngle=0, labelAlign='left', labelLimit=150))
-        ).configure_view(stroke=None)
+        df_comp_fecha = df.melt(
+            id_vars=[col_procesos],
+            value_vars=[col_avance, 'Avance_Esperado'],
+            var_name='Metrica',
+            value_name='Porcentaje'
+        )
+
+        df_comp_fecha['Metrica'] = df_comp_fecha['Metrica'].replace({
+            col_avance: 'Avance Real (%)',
+            'Avance_Esperado': 'Avance Esperado (%)'
+        })
+
+        chart_cumplimiento = (
+            alt.Chart(df_comp_fecha)
+            .mark_bar()
+            .encode(
+                y=alt.Y(
+                    'Metrica:N',
+                    title=None,
+                    axis=alt.Axis(labels=False, ticks=False)
+                ),
+                x=alt.X(
+                    'Porcentaje:Q',
+                    title='Porcentaje (%)',
+                    scale=alt.Scale(domain=[0, 100])
+                ),
+                color=alt.Color(
+                    'Metrica:N',
+                    scale=alt.Scale(range=['#5276A7', '#E67E22']),
+                    legend=alt.Legend(title=None)
+                ),
+                tooltip=[
+                    alt.Tooltip(col_procesos, title="Proceso"),
+                    alt.Tooltip('Porcentaje:Q', format='.1f', title="Porcentaje (%)")
+                ]
+            )
+            .properties(
+                height=50,
+                width=950
+            )
+            .facet(
+                row=alt.Row(
+                    f'{col_procesos}:N',
+                    title="Procesos",
+                    header=alt.Header(
+                        labelAngle=0,
+                        labelAlign='left',
+                        labelLimit=150
+                    )
+                )
+            )
+            .configure_view(stroke=None)
+            .configure_legend(
+                orient='top',
+                direction='horizontal'
+            )
+        )
 
         st.altair_chart(chart_cumplimiento, use_container_width=True)
+
 
         # --- TABLA DE DATOS ---
         st.divider()
